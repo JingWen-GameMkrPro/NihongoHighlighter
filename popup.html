@@ -1,0 +1,149 @@
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400, initial-scale=1">
+  <title>自動讀取 JSON 並高亮</title>
+  <style>
+    /* 使用暗色背景及 Apple 風格設計，並加入漸層光圈 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 400px;
+      height: 600px;
+      background: #1c1c1e;
+      background: 
+        radial-gradient(circle at 30% 30%, rgba(255,149,0,0.8), transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(0,122,255,0.6), transparent 60%),
+        #1c1c1e;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f5f5f7;
+      overflow-y: auto; /* 允許垂直滾動 */
+    }
+    /* 主容器：半透明、圓角、置中 */
+    .container {
+      width: 90%;
+      max-width: 360px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 12px;
+      background-color: rgba(28, 28, 30, 0.75);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-sizing: border-box;
+    }
+    /* 主標題 */
+    h1 {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #f5f5f7;
+    }
+    /* 按鈕群組：垂直排列，全寬且按鈕對齊 */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    /* 按鈕 */
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #2c2c2e;
+      color: #f5f5f7;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #3a3a3c;
+    }
+    /* 資料來源模式區塊 */
+    #dataSourceArea {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      background-color: rgba(44, 44, 46, 0.5);
+    }
+    #dataSourceArea label {
+      font-size: 14px;
+      margin-bottom: 6px;
+      display: block;
+      color: #f5f5f7;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      font-size: 14px;
+      color: #f5f5f7;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+      background-color: #2c2c2e;
+    }
+    /* 資訊區塊 */
+    #infoArea {
+      text-align: center;
+      font-size: 14px;
+      color: #f5f5f7;
+    }
+    /* 新增區塊：僅顯示 JSON Key 總數 */
+    #keysArea {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      background-color: rgba(44, 44, 46, 0.5);
+      text-align: center;
+    }
+    #keysArea h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #f5f5f7;
+    }
+    #keyCount {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f5f5f7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>自動讀取 JSON 並高亮</h1>
+    <div class="btn-group">
+      <button id="uploadFileBtn">上傳檔案</button>
+      <button id="startModeBtn">開啟高亮模式</button>
+      <button id="stopModeBtn">停止高亮模式</button>
+      <button id="deleteStorageBtn">刪除 JSON</button>
+    </div>
+    <div id="dataSourceArea">
+      <label for="dataSourceSelect">資料來源模式：</label>
+      <select id="dataSourceSelect">
+        <option value="local">本地檔案模式</option>
+        <option value="gist">Gist檔案模式</option>
+      </select>
+      <div id="gistInputArea">
+        <label for="gistUrl">Gist網址：</label>
+        <input type="text" id="gistUrl" placeholder="請輸入 Gist 頁面 URL">
+        <button id="updateGistBtn">讀取 Gist</button>
+      </div>
+    </div>
+    <div id="infoArea">
+      <p id="currentMode">目前模式：停止</p>
+      <p id="currentDataSource">資料來源模式：無</p>
+    </div>
+    <!-- 新增區塊：顯示 chrome.storage 中 JSON 的 key 總數 -->
+    <div id="keysArea">
+      <h3>JSON Key 總數</h3>
+      <div id="keyCount">0</div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
