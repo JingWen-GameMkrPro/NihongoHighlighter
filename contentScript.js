@@ -66,10 +66,10 @@ function highlightText(keyword, infoData, root = document.body) {
           e.stopPropagation();
           const audio = new Audio(chrome.runtime.getURL("sound.mp3"));
           audio.play();
-          let currentCount = parseInt(infoData["count"], 10);
-          if (isNaN(currentCount)) currentCount = 0;
-          currentCount++;
-          infoData["count"] = currentCount.toString();
+          //let currentCount = parseInt(infoData["count"], 10);
+          //if (isNaN(currentCount)) currentCount = 0;
+          //currentCount++;
+          //infoData["count"] = currentCount.toString();
           const tooltip = getSharedTooltip();
           if (tooltip.style.display !== "none") {
             tooltip.textContent = buildTooltipString(keyword, infoData);
@@ -96,13 +96,13 @@ function highlightText(keyword, infoData, root = document.body) {
 function buildTooltipString(keyword, infoData) {
   const lines = [];
   lines.push(`${keyword}`);
-  for (const prop in infoData) {
-    if (Object.hasOwn(infoData, prop)) {
-      lines.push(`${prop}: ${infoData[prop]}`);
-    }
+  const props = Object.keys(infoData).reverse(); // 取得所有屬性並反轉順序
+  for (const prop of props) {
+    lines.push(`${prop}: ${infoData[prop]}`);
   }
   return lines.join("\n");
 }
+
 
 /**
  * 清除所有高亮：先替換高亮 span 為純文字節點，然後合併相鄰文字節點
