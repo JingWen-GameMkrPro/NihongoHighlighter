@@ -1,3 +1,6 @@
+
+// 現在可以存取環境變數
+
 document.addEventListener("DOMContentLoaded", () => {
   // DOM元素的取得
   const startModeBtn = document.getElementById("startModeBtn"),
@@ -66,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   .replace(/\&\{[^}]+\}/g, "")
                   .replace(/\~\{[^}]+\}/g, "")
                   .replace(/\@\{[^}]+\}/g, "");
+
                   return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
@@ -118,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(apiUrl, {
         cache: "no-store",
         headers: {
-          "Authorization": "token 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"
+          "Authorization": "token "+ window.config.apiKey
         }
       });
       if (!response.ok) throw new Error("Gistのデータ取得に失敗しました");
