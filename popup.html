@@ -1,10 +1,10 @@
-<html lang="zh-TW">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=400, initial-scale=1">
-  <title>自動讀取 JSON 並高亮</title>
+  <title>単語ハイライト</title>
   <style>
-    /* 使用暗色背景及 Apple 風格設計，並加入漸層光圈 */
+    /* 全体背景：深色と柔らかな漸層 */
     html, body {
       margin: 0;
       padding: 0;
@@ -17,9 +17,9 @@
         #1c1c1e;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #f5f5f7;
-      overflow-y: auto; /* 允許垂直滾動 */
+      overflow-y: auto;
     }
-    /* 主容器：半透明、圓角、置中 */
+    /* メインコンテナ：半透明、角丸、中央配置 */
     .container {
       width: 90%;
       max-width: 360px;
@@ -30,7 +30,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       box-sizing: border-box;
     }
-    /* 主標題 */
+    /* タイトル */
     h1 {
       text-align: center;
       font-size: 20px;
@@ -38,14 +38,14 @@
       margin-bottom: 20px;
       color: #f5f5f7;
     }
-    /* 按鈕群組：垂直排列，全寬且按鈕對齊 */
+    /* ボタングループ：縦並び、全幅 */
     .btn-group {
       display: flex;
       flex-direction: column;
       gap: 10px;
       margin-bottom: 20px;
     }
-    /* 按鈕 */
+    /* ボタン */
     button {
       width: 100%;
       padding: 12px;
@@ -61,7 +61,7 @@
     button:hover {
       background-color: #3a3a3c;
     }
-    /* 資料來源模式區塊 */
+    /* データソースエリア */
     #dataSourceArea {
       margin-bottom: 20px;
       padding: 15px;
@@ -75,7 +75,11 @@
       display: block;
       color: #f5f5f7;
     }
-    select, input[type="text"] {
+    /* Gistモード関連 */
+    #gistInputArea {
+      display: block;
+    }
+    #gistInputArea input[type="text"] {
       width: 100%;
       padding: 10px;
       border: 1px solid rgba(255,255,255,0.15);
@@ -86,13 +90,13 @@
       box-sizing: border-box;
       background-color: #2c2c2e;
     }
-    /* 資訊區塊 */
+    /* 情報エリア */
     #infoArea {
       text-align: center;
       font-size: 14px;
       color: #f5f5f7;
     }
-    /* 新增區塊：僅顯示 JSON Key 總數 */
+    /* JSONキー数表示エリア */
     #keysArea {
       margin-top: 20px;
       padding: 10px;
@@ -115,32 +119,25 @@
 </head>
 <body>
   <div class="container">
-    <h1>自動讀取 JSON 並高亮</h1>
+    <h1>単語ハイライト</h1>
     <div class="btn-group">
-      <button id="uploadFileBtn">上傳檔案</button>
-      <button id="startModeBtn">開啟高亮模式</button>
-      <button id="stopModeBtn">停止高亮模式</button>
-      <button id="deleteStorageBtn">刪除 JSON</button>
+      <button id="startModeBtn">ハイライト開始</button>
+      <button id="stopModeBtn">ハイライト停止</button>
+      <button id="deleteStorageBtn">JSON削除</button>
     </div>
     <div id="dataSourceArea">
-      <label for="dataSourceSelect">資料來源模式：</label>
-      <select id="dataSourceSelect">
-        <option value="local">本地檔案模式</option>
-        <option value="gist">Gist檔案模式</option>
-      </select>
+      <label for="gistUrl">GistのURL：</label>
       <div id="gistInputArea">
-        <label for="gistUrl">Gist網址：</label>
-        <input type="text" id="gistUrl" placeholder="請輸入 Gist 頁面 URL">
-        <button id="updateGistBtn">讀取 Gist</button>
+        <input type="text" id="gistUrl" placeholder="GistページのURLを入力してください">
+        <button id="updateGistBtn">Gist読み込み</button>
       </div>
     </div>
     <div id="infoArea">
-      <p id="currentMode">目前模式：停止</p>
-      <p id="currentDataSource">資料來源模式：無</p>
+      <p id="currentMode">現在の状態：停止中</p>
+      <p id="currentDataSource">データソース：Gist</p>
     </div>
-    <!-- 新增區塊：顯示 chrome.storage 中 JSON 的 key 總數 -->
     <div id="keysArea">
-      <h3>JSON Key 總數</h3>
+      <h3>JSONキー数</h3>
       <div id="keyCount">0</div>
     </div>
   </div>
