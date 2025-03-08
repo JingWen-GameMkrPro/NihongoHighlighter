@@ -66,10 +66,6 @@ function highlightText(keyword, infoData, root = document.body) {
           e.stopPropagation();
           const audio = new Audio(chrome.runtime.getURL("sound.mp3"));
           audio.play();
-          //let currentCount = parseInt(infoData["count"], 10);
-          //if (isNaN(currentCount)) currentCount = 0;
-          //currentCount++;
-          //infoData["count"] = currentCount.toString();
           const tooltip = getSharedTooltip();
           if (tooltip.style.display !== "none") {
             tooltip.textContent = buildTooltipString(keyword, infoData);
@@ -98,7 +94,7 @@ function buildTooltipString(keyword, infoData) {
   lines.push(`${keyword}`);
   const props = Object.keys(infoData).reverse(); // 取得所有屬性並反轉順序
   for (const prop of props) {
-    lines.push(`${prop}: ${infoData[prop]}`);
+    lines.push(`${infoData[prop]}`);
   }
   return lines.join("\n");
 }

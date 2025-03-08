@@ -19,8 +19,22 @@ document.addEventListener("DOMContentLoaded", () => {
   dataSourceSelect.value = "gist";
   updateDataSourceDisplay("gist");
 
-  let highlighterTimer = null,
-    TIMER_INTERVAL = 10000;
+  let highlighterTimer = null;
+  // TIMER_INTERVAL 保留給本地模式或其他更新需求
+  const TIMER_INTERVAL = 10000;
+
+  // 深度比較函式（簡單實作）
+  function deepEqual(a, b) {
+    if (a === b) return true;
+    if (typeof a !== "object" || a === null || typeof b !== "object" || b === null)
+      return false;
+    const keysA = Object.keys(a), keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    for (let key of keysA) {
+      if (!keysB.includes(key) || !deepEqual(a[key], b[key])) return false;
+    }
+    return true;
+  }
 
   // 更新目前模式顯示
   function updateModeDisplay(mode) {
@@ -74,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
               // 找不到則保持原樣
               return match;
             });
-            // 新增：若字串內包含 "\n"（反斜線 n），則替換成真正換行符號
+            // 若字串內包含 "\n"（反斜線 n），則替換成真正換行符號
             text = text.replace(/\\n/g, "\n");
             obj[prop] = text;
           }
@@ -84,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return jsonData;
   }
 
-  // 透過 GitHub Gist API 取得最新 JSON 內容（移除 token 相關處理）
+  // 透過 GitHub Gist API 取得最新 JSON 內容
   async function fetchGistJson() {
     const gistUrl = gistUrlInput.value.trim();
     if (!gistUrl) {
@@ -129,7 +143,40 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 定時更新高亮：若模式為 gist，先讀取 Gist JSON 再發送高亮訊息；本地模式則直接發送
+  // 每秒檢查遠端 Gist JSON 是否有更新
+  async function checkForGistUpdate() {
+    chrome.storage.local.get(["dataSource", "jsonData"], async (result) => {
+      const mode = result.dataSource || "gist";
+      // 僅針對 Gist 模式進行檢查
+      if (mode !== "gist") return;
+      const newJsonData = await fetchGistJson();
+      if (!newJsonData) {
+        console.log("checkForGistUpdate: 取得新資料失敗");
+        return;
+      }
+      // 比較新舊資料（使用 deepEqual）
+      if (!deepEqual(newJsonData, result.jsonData)) {
+        console.log("checkForGistUpdate: 偵測到更新，開始自動更新資料與高亮");
+        chrome.storage.local.set({ jsonData: newJsonData }, () => {
+          sendHighlightMessage();
+          updateKeyCount();
+        });
+      } else {
+        console.log("checkForGistUpdate: 無更新");
+      }
+    });
+  }
+
+  // 啟動高亮模式：立即更新後再開始定時檢查更新
+  function startHighlighterMode() {
+    if (highlighterTimer) clearInterval(highlighterTimer);
+    updateHighlighter(); // 初次更新（若非 Gist 模式則直接發送高亮）
+    // Gist 模式下每秒檢查更新
+    highlighterTimer = setInterval(checkForGistUpdate, 1000);
+    updateModeDisplay("highlighter");
+  }
+
+  // 保留原 updateHighlighter 供本地模式使用（或初次更新）
   async function updateHighlighter() {
     chrome.storage.local.get("dataSource", async (result) => {
       const mode = result.dataSource || "gist";
@@ -148,14 +195,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateKeyCount();
       }
     });
-  }
-
-  // 啟動高亮模式：立即更新後再定時更新
-  function startHighlighterMode() {
-    if (highlighterTimer) clearInterval(highlighterTimer);
-    updateHighlighter();
-    highlighterTimer = setInterval(updateHighlighter, TIMER_INTERVAL);
-    updateModeDisplay("highlighter");
   }
 
   // 停止高亮模式：清除定時器並通知 contentScript 清除高亮
@@ -238,9 +277,6 @@ document.addEventListener("DOMContentLoaded", () => {
       keyCountElement.textContent = "0";
     });
   });
-
-  // 每隔 10 秒自動呼叫 updateGistData 來讀取 Gist 資料
-  setInterval(updateGistData, 10000);
 
   // 初始設定：依據 chrome.storage 中的資料來源更新畫面
   chrome.storage.local.get("dataSource", (result) => {
