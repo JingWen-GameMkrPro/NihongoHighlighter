@@ -1,5 +1,12 @@
 // contentScript.js
 
+// 自訂佔位符顏色設定，你可以在此調整RGB色彩
+const placeholderColorMap = {
+  GREEN: "rgb(0, 69, 0)",      // 例如：亮綠色
+  RED:   "rgb(92, 0, 0)",  // 例如：淡紅色
+  BLUE:  "rgb(0, 32, 65)"   // 例如：淡藍色
+};
+
 // 建立全域共用的 tooltip，如果尚未建立的話
 function getSharedTooltip() {
   if (!window.sharedTooltip) {
@@ -53,7 +60,7 @@ function highlightText(keyword, infoData, root = document.body) {
       if (infoData) {
         span.addEventListener("mouseover", (e) => {
           const tooltip = getSharedTooltip();
-          tooltip.textContent = buildTooltipString(keyword, infoData);
+          tooltip.innerHTML = buildTooltipString(keyword, infoData);
           tooltip.style.left = e.pageX + "px";
           tooltip.style.top = e.pageY + 10 + "px";
           tooltip.style.display = "block";
@@ -68,9 +75,9 @@ function highlightText(keyword, infoData, root = document.body) {
           audio.play();
           const tooltip = getSharedTooltip();
           if (tooltip.style.display !== "none") {
-            tooltip.textContent = buildTooltipString(keyword, infoData);
+            tooltip.innerHTML = buildTooltipString(keyword, infoData);
           }
-          // 將背景色改為灰色（#808080）
+          // 將背景色改為灰色
           e.currentTarget.style.backgroundColor = "#808080";
           // 通知 popup 讀取 Gist（僅讀取，不更新遠端資料）
           chrome.runtime.sendMessage({ action: "UPDATE_GIST" });
@@ -90,18 +97,30 @@ function highlightText(keyword, infoData, root = document.body) {
 }
 
 function buildTooltipString(keyword, infoData) {
-  const lines = [];
-  lines.push(`${keyword}`);
-  const props = Object.keys(infoData).reverse(); // 取得所有屬性並反轉順序
+  let html = `<div>${keyword}</div>`;
+  const props = Object.keys(infoData).reverse();
   for (const prop of props) {
-    lines.push(`${infoData[prop]}`);
+    let line = infoData[prop];
+    // 將綠色標記替換為內聯HTML
+    line = line.replace(/__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
+      `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px;">$1</div>`);
+    // 將紅色標記替換為內聯HTML
+    line = line.replace(/__PLACEHOLDER_RED__(.*?)__ENDPLACEHOLDER__/g,
+      `<div style="background-color: ${placeholderColorMap.RED}; padding:2px;">$1</div>`);
+    // 將藍色標記替換為內聯HTML
+    line = line.replace(/__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
+      `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px;">$1</div>`);
+    // 若該行無特殊標記，則包裝為div
+    if (!line.includes("__PLACEHOLDER_")) {
+      line = `<div>${line}</div>`;
+    }
+    html += line;
   }
-  return lines.join("\n");
+  return html;
 }
 
-
 /**
- * 清除所有高亮：先替換高亮 span 為純文字節點，然後合併相鄰文字節點
+ * 清除所有高亮：將高亮 span 還原為純文字節點，並合併相鄰文字節點
  */
 function clearHighlight() {
   const highlighted = document.querySelectorAll("span.highlighted");
@@ -137,7 +156,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === "CLEAR") {
     clearHighlight();
   }
-  // 呼叫回應以避免「message port closed」錯誤
   sendResponse();
 });
 

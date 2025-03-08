@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // JSON内のプレースホルダおよび改行処理
+  // JSON内のプレースホルダおよび改行処理（新フォーマット対応）
   function substitutePlaceholders(jsonData) {
     Object.keys(jsonData).forEach(mainKey => {
       const obj = jsonData[mainKey];
@@ -61,6 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
+            // 既存の${...}形式の置換
             text = text.replace(/\$\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
                 const refObj = jsonData[refKey];
@@ -70,6 +71,31 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return match;
             });
+            // 新規：&{...}形式（背景：緑色）→ "ref.：key: [description]"
+            text = text.replace(/&\{([^}]+)\}/g, (match, refKey) => {
+              if (jsonData.hasOwnProperty(refKey)) {
+                const refObj = jsonData[refKey];
+                if (refObj && refObj.description) {
+                  return `__PLACEHOLDER_GREEN__ref.：${refKey}: ${refObj.description}__ENDPLACEHOLDER__`;
+                }
+              }
+              return match;
+            });
+            // 新規：~{...}形式（背景：赤色）→ "v.s.：key: [description]"
+            text = text.replace(/~\{([^}]+)\}/g, (match, refKey) => {
+              if (jsonData.hasOwnProperty(refKey)) {
+                const refObj = jsonData[refKey];
+                if (refObj && refObj.description) {
+                  return `__PLACEHOLDER_RED__v.s.：${refKey}: ${refObj.description}__ENDPLACEHOLDER__`;
+                }
+              }
+              return match;
+            });
+            // 新規：@{...}形式（背景：青色）、括弧内の内容を直接表示
+            text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
+              return `__PLACEHOLDER_BLUE__e.g.: ${content}__ENDPLACEHOLDER__`;
+            });
+            // 改行処理
             text = text.replace(/\\n/g, "\n");
             obj[prop] = text;
           }
