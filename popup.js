@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // DOM要素の取得
+  // DOM元素的取得
   const startModeBtn = document.getElementById("startModeBtn"),
         stopModeBtn = document.getElementById("stopModeBtn"),
         deleteStorageBtn = document.getElementById("deleteStorageBtn"),
@@ -10,39 +10,24 @@ document.addEventListener("DOMContentLoaded", () => {
         updateGistBtn = document.getElementById("updateGistBtn"),
         keyCountElement = document.getElementById("keyCount");
 
-  // データソースは常にGist固定
+  // 資料來源固定為Gist
   const defaultGistUrl = "https://gist.github.com/JingWen-GameMkrPro/59306ed6b3f7e9a2847712b45e554390";
   gistUrlInput.value = defaultGistUrl;
   chrome.storage.local.set({ dataSource: "gist" });
   updateDataSourceDisplay("gist");
 
-  let highlighterTimer = null;
-
-  // 深い比較関数（シンプル実装）
-  function deepEqual(a, b) {
-    if (a === b) return true;
-    if (typeof a !== "object" || a === null || typeof b !== "object" || b === null)
-      return false;
-    const keysA = Object.keys(a), keysB = Object.keys(b);
-    if (keysA.length !== keysB.length) return false;
-    for (let key of keysA) {
-      if (!keysB.includes(key) || !deepEqual(a[key], b[key])) return false;
-    }
-    return true;
-  }
-
-  // 現在の状態表示を更新
+  // 現在狀態顯示更新
   function updateModeDisplay(mode) {
     currentModeP.textContent = "現在の状態：" + (mode === "highlighter" ? "ハイライト中" : "停止中");
   }
 
-  // データソース表示の更新（常にGist）
+  // 資料來源顯示更新（固定為Gist）
   function updateDataSourceDisplay(mode) {
     gistInputArea.style.display = "block";
     currentDataSourceP.textContent = "データソース：Gist";
   }
 
-  // JSONキー数の表示を更新
+  // 更新JSON鍵數顯示
   function updateKeyCount() {
     chrome.storage.local.get("jsonData", (result) => {
       let keys = [];
@@ -53,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // JSON内のプレースホルダおよび改行処理（新フォーマット対応）
+  // JSON內的佔位符及換行處理（新格式支援）
   function substitutePlaceholders(jsonData) {
     Object.keys(jsonData).forEach(mainKey => {
       const obj = jsonData[mainKey];
@@ -61,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
-            // 既存の${...}形式の置換
+            // 既有的 ${...} 格式置換
             text = text.replace(/\$\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
                 const refObj = jsonData[refKey];
@@ -71,31 +56,41 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return match;
             });
-            // 新規：&{...}形式（背景：緑色）→ "ref.：key: [description]"
+            // 新增：&{...} 格式（背景：綠色）
             text = text.replace(/&\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
                 const refObj = jsonData[refKey];
                 if (refObj && refObj.description) {
-                  return `__PLACEHOLDER_GREEN__ref.：${refKey}: ${refObj.description}__ENDPLACEHOLDER__`;
+                  const cleanDesc = refObj.description
+                  .replace(/\$\{[^}]+\}/g, "")
+                  .replace(/\&\{[^}]+\}/g, "")
+                  .replace(/\~\{[^}]+\}/g, "")
+                  .replace(/\@\{[^}]+\}/g, "");
+                  return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
               return match;
             });
-            // 新規：~{...}形式（背景：赤色）→ "v.s.：key: [description]"
+            // 新增：~{...} 格式（背景：紅色）
             text = text.replace(/~\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
                 const refObj = jsonData[refKey];
                 if (refObj && refObj.description) {
-                  return `__PLACEHOLDER_RED__v.s.：${refKey}: ${refObj.description}__ENDPLACEHOLDER__`;
+                  const cleanDesc = refObj.description
+                  .replace(/\$\{[^}]+\}/g, "")
+                  .replace(/\&\{[^}]+\}/g, "")
+                  .replace(/\~\{[^}]+\}/g, "")
+                  .replace(/\@\{[^}]+\}/g, "");
+                  return `__PLACEHOLDER_RED__【似】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
               return match;
             });
-            // 新規：@{...}形式（背景：青色）、括弧内の内容を直接表示
+            // 新增：@{...} 格式（背景：藍色），直接顯示括弧內內容
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
-              return `__PLACEHOLDER_BLUE__e.g.: ${content}__ENDPLACEHOLDER__`;
+              return `__PLACEHOLDER_BLUE__【例】：　${content}__ENDPLACEHOLDER__`;
             });
-            // 改行処理
+            // 換行處理
             text = text.replace(/\\n/g, "\n");
             obj[prop] = text;
           }
@@ -105,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return jsonData;
   }
 
-  // Gistから最新JSONを取得する関数
+  // 從Gist取得最新JSON（僅在按下按鈕時更新）
   async function fetchGistJson() {
     const gistUrl = gistUrlInput.value.trim();
     if (!gistUrl) {
@@ -120,7 +115,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const apiUrl = `https://api.github.com/gists/${gistId}?t=${Date.now()}`;
     try {
-      const response = await fetch(apiUrl, { cache: "no-store" });
+      const response = await fetch(apiUrl, {
+        cache: "no-store",
+        headers: {
+          "Authorization": "token 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"
+        }
+      });
       if (!response.ok) throw new Error("Gistのデータ取得に失敗しました");
       const gistData = await response.json();
       const files = gistData.files,
@@ -135,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // JSONをchrome.storageから読み込み、ハイライト用にcontentScriptへ送信
+  // 從chrome.storage讀取JSON並傳送給contentScript以進行高亮
   function sendHighlightMessage() {
     chrome.storage.local.get("jsonData", (result) => {
       if (result.jsonData) {
@@ -149,37 +149,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 1秒ごとにGistの更新をチェック
-  async function checkForGistUpdate() {
-    chrome.storage.local.get(["dataSource", "jsonData"], async (result) => {
-      const mode = result.dataSource || "gist";
-      if (mode !== "gist") return;
-      const newJsonData = await fetchGistJson();
-      if (!newJsonData) {
-        console.log("checkForGistUpdate: 新しいデータの取得に失敗");
-        return;
-      }
-      if (!deepEqual(newJsonData, result.jsonData)) {
-        console.log("checkForGistUpdate: 更新が検出されました。自動更新します");
-        chrome.storage.local.set({ jsonData: newJsonData }, () => {
-          sendHighlightMessage();
-          updateKeyCount();
-        });
-      } else {
-        console.log("checkForGistUpdate: 更新はありません");
-      }
-    });
-  }
-
-  // ハイライト開始：初回更新後、1秒ごとに更新チェックを開始
+  // 開始高亮模式（設定JSON到chrome.storage並通知contentScript）
   function startHighlighterMode() {
-    if (highlighterTimer) clearInterval(highlighterTimer);
     updateHighlighter();
-    highlighterTimer = setInterval(checkForGistUpdate, 1000);
     updateModeDisplay("highlighter");
   }
 
-  // 初回更新（Gist用）
+  // 初次更新（僅在按鈕觸發時更新，不使用自動更新）
   async function updateHighlighter() {
     chrome.storage.local.get("dataSource", async (result) => {
       const mode = result.dataSource || "gist";
@@ -200,19 +176,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ハイライト停止
+  // 停止高亮模式
   function stopHighlighterMode() {
-    if (highlighterTimer) {
-      clearInterval(highlighterTimer);
-      highlighterTimer = null;
-    }
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
     });
     updateModeDisplay("stopped");
   }
 
-  // GistからJSONを読み込み（読み取り専用）
+  // 讀取Gist中的JSON（僅讀取，不更新遠端資料）
   async function updateGistData() {
     const jsonData = await fetchGistJson();
     if (jsonData) {
@@ -224,12 +196,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Gist読み込みボタンのイベント
+  // 當按下Gist讀取按鈕時，從Gist取得JSON
   updateGistBtn.addEventListener("click", async () => {
     await updateGistData();
   });
 
-  // ハイライト開始ボタンのイベント
+  // 開始高亮按鈕事件
   startModeBtn.addEventListener("click", () => {
     chrome.storage.local.get("jsonData", (result) => {
       if (result.jsonData) startHighlighterMode();
@@ -237,10 +209,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ハイライト停止ボタンのイベント
+  // 停止高亮按鈕事件
   stopModeBtn.addEventListener("click", stopHighlighterMode);
 
-  // JSON削除ボタンのイベント
+  // JSON刪除按鈕事件
   deleteStorageBtn.addEventListener("click", () => {
     chrome.storage.local.remove(["jsonData", "dataSource"], () => {
       alert("JSONデータを削除しました");
@@ -251,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 初期設定：データソースは強制的にGistに設定
+  // 初始設定：強制將資料來源設為Gist
   chrome.storage.local.set({ dataSource: "gist" }, () => {
     updateModeDisplay("highlighter");
     updateDataSourceDisplay("gist");
