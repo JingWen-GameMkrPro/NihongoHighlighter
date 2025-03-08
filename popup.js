@@ -52,6 +52,36 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // 新增：解析 JSON 中的 ${key} 佔位符
+  function substitutePlaceholders(jsonData) {
+    // 遍歷所有 key 對應的物件
+    Object.keys(jsonData).forEach(mainKey => {
+      const obj = jsonData[mainKey];
+      // 確保該項目為物件
+      if (typeof obj === "object" && obj !== null) {
+        Object.keys(obj).forEach(prop => {
+          let text = obj[prop];
+          if (typeof text === "string") {
+            // 用正規表示式找出所有 ${...} 佔位符
+            text = text.replace(/\$\{([^}]+)\}/g, (match, refKey) => {
+              // 若參照的 key 存在且為物件，則取同名屬性的值
+              if (jsonData.hasOwnProperty(refKey)) {
+                const refObj = jsonData[refKey];
+                if (typeof refObj === "object" && refObj !== null && refObj.hasOwnProperty(prop)) {
+                  return refObj[prop];
+                }
+              }
+              // 找不到則保持原樣
+              return match;
+            });
+            obj[prop] = text;
+          }
+        });
+      }
+    });
+    return jsonData;
+  }
+
   // 透過 GitHub Gist API 取得最新 JSON 內容（移除 token 相關處理）
   async function fetchGistJson() {
     const gistUrl = gistUrlInput.value.trim();
@@ -73,7 +103,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const files = gistData.files,
         fileKeys = Object.keys(files);
       if (!fileKeys.length) throw new Error("該 Gist 中沒有檔案");
-      return JSON.parse(files[fileKeys[0]].content);
+      let jsonData = JSON.parse(files[fileKeys[0]].content);
+      // 執行佔位符替換
+      jsonData = substitutePlaceholders(jsonData);
+      return jsonData;
     } catch (error) {
       alert("取得 Gist 資料失敗：" + error.message);
       return null;
@@ -142,7 +175,6 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.storage.local.set({ jsonData, dataSource: "gist" }, () => {
         dataSourceSelect.value = "gist";
         updateDataSourceDisplay("gist");
-        //startHighlighterMode();
       });
     } else {
       updateKeyCount();
@@ -165,7 +197,9 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const file = await fileHandle.getFile();
       const content = await file.text();
-      const jsonData = JSON.parse(content);
+      let jsonData = JSON.parse(content);
+      // 執行佔位符替換
+      jsonData = substitutePlaceholders(jsonData);
       chrome.storage.local.set({ jsonData, dataSource: "local" }, () => {
         dataSourceSelect.value = "local";
         updateDataSourceDisplay("local");
