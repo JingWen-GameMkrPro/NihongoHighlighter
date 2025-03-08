@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 新增：解析 JSON 中的 ${key} 佔位符
+  // 新增：解析 JSON 中的 ${key} 佔位符，並處理字串內的 "\n" 換行
   function substitutePlaceholders(jsonData) {
     // 遍歷所有 key 對應的物件
     Object.keys(jsonData).forEach(mainKey => {
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
-            // 用正規表示式找出所有 ${...} 佔位符
+            // 處理 ${...} 佔位符替換
             text = text.replace(/\$\{([^}]+)\}/g, (match, refKey) => {
               // 若參照的 key 存在且為物件，則取同名屬性的值
               if (jsonData.hasOwnProperty(refKey)) {
@@ -74,6 +74,8 @@ document.addEventListener("DOMContentLoaded", () => {
               // 找不到則保持原樣
               return match;
             });
+            // 新增：若字串內包含 "\n"（反斜線 n），則替換成真正換行符號
+            text = text.replace(/\\n/g, "\n");
             obj[prop] = text;
           }
         });
@@ -104,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fileKeys = Object.keys(files);
       if (!fileKeys.length) throw new Error("該 Gist 中沒有檔案");
       let jsonData = JSON.parse(files[fileKeys[0]].content);
-      // 執行佔位符替換
+      // 執行佔位符替換與換行符號處理
       jsonData = substitutePlaceholders(jsonData);
       return jsonData;
     } catch (error) {
@@ -198,7 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const file = await fileHandle.getFile();
       const content = await file.text();
       let jsonData = JSON.parse(content);
-      // 執行佔位符替換
+      // 執行佔位符替換與換行符號處理
       jsonData = substitutePlaceholders(jsonData);
       chrome.storage.local.set({ jsonData, dataSource: "local" }, () => {
         dataSourceSelect.value = "local";
