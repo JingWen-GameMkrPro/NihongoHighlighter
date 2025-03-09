@@ -49,16 +49,16 @@ document.addEventListener("DOMContentLoaded", () => {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
-            // 既有的 ${...} 格式置換
-            text = text.replace(/\$\{([^}]+)\}/g, (match, refKey) => {
-              if (jsonData.hasOwnProperty(refKey)) {
-                const refObj = jsonData[refKey];
-                if (typeof refObj === "object" && refObj !== null && refObj.hasOwnProperty(prop)) {
-                  return refObj[prop];
-                }
-              }
-              return match;
-            });
+            // // 既有的 ${...} 格式置換
+            // text = text.replace(/\$\{([^}]+)\}/g, (match, refKey) => {
+            //   if (jsonData.hasOwnProperty(refKey)) {
+            //     const refObj = jsonData[refKey];
+            //     if (typeof refObj === "object" && refObj !== null && refObj.hasOwnProperty(prop)) {
+            //       return refObj[prop];
+            //     }
+            //   }
+            //   return match;
+            // });
             // 新增：&{...} 格式（背景：綠色）
             text = text.replace(/&\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
@@ -67,8 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   const cleanDesc = refObj.description
                   .replace(/\$\{[^}]+\}/g, "")
                   .replace(/\&\{[^}]+\}/g, "")
-                  .replace(/\~\{[^}]+\}/g, "")
-                  .replace(/\@\{[^}]+\}/g, "");
+                  .replace(/\~\{[^}]+\}/g, "");
+                  //.replace(/\@\{[^}]+\}/g, "");
 
                   return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
@@ -83,8 +83,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   const cleanDesc = refObj.description
                   .replace(/\$\{[^}]+\}/g, "")
                   .replace(/\&\{[^}]+\}/g, "")
-                  .replace(/\~\{[^}]+\}/g, "")
-                  .replace(/\@\{[^}]+\}/g, "");
+                  .replace(/\~\{[^}]+\}/g, "");
+                  //.replace(/\@\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_RED__【似】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
