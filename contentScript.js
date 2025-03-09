@@ -31,97 +31,66 @@ function getSharedTooltip() {
   return window.sharedTooltip;
 }
 
-/**
- * 在網頁中高亮指定關鍵字，並使用共用 tooltip 顯示 infoData 內容
- */
-function highlightText(keyword, infoData, root = document.body) {
-  if (!keyword) return;
-  const needle = keyword.trim();
-  if (!needle) return;
-  
-  const regex = new RegExp(escapeRegExp(needle), "gi");
-  
-  walkTextNodes(root, (textNode) => {
-    const parent = textNode.parentNode;
-    if (!parent) return;
-    let textContent = textNode.nodeValue;
-    let match;
-    let fragmentList = [];
-    let lastIndex = 0;
-    
-    while ((match = regex.exec(textContent)) !== null) {
-      const matchStart = match.index;
-      const matchEnd = regex.lastIndex;
-      if (matchStart > lastIndex) {
-        fragmentList.push(document.createTextNode(textContent.slice(lastIndex, matchStart)));
-      }
-      const span = document.createElement("span");
-      span.className = "highlighted";
-      span.textContent = textContent.slice(matchStart, matchEnd);
-      // 預設背景設定為螢光黃（可自行調整或保留原效果）
-      span.style.backgroundColor = "#ffff33";
-      span.setAttribute("data-key", keyword);
-      if (infoData) {
-        span.addEventListener("mouseover", (e) => {
-          const tooltip = getSharedTooltip();
-          tooltip.innerHTML = buildTooltipString(keyword, infoData);
-          tooltip.style.left = e.pageX + "px";
-          tooltip.style.top = (e.pageY + 10) + "px";
-          tooltip.style.opacity = "1";
-        });
-        span.addEventListener("mouseout", () => {
-          const tooltip = getSharedTooltip();
-          tooltip.style.opacity = "0";
-        });
-        span.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const audio = new Audio(chrome.runtime.getURL("sound.mp3"));
-          audio.play();
-          const tooltip = getSharedTooltip();
-          if (tooltip.style.opacity !== "0") {
-            tooltip.innerHTML = buildTooltipString(keyword, infoData);
-          }
-          // 將背景色改為灰色
-          e.currentTarget.style.backgroundColor = "#808080";
-          // 通知 popup 讀取 Gist（僅讀取，不更新遠端資料）
-          chrome.runtime.sendMessage({ action: "UPDATE_GIST" });
-        });
-      }
-      fragmentList.push(span);
-      lastIndex = matchEnd;
-    }
-    if (lastIndex < textContent.length) {
-      fragmentList.push(document.createTextNode(textContent.slice(lastIndex)));
-    }
-    if (fragmentList.length > 0) {
-      fragmentList.forEach((el) => parent.insertBefore(el, textNode));
-      parent.removeChild(textNode);
-    }
-  });
+// 新增輔助函數，用於處理文字中內建的佔位符轉換
+function processLine(line) {
+  line = line.replace(/__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
+      `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
+  line = line.replace(/__PLACEHOLDER_RED__(.*?)__ENDPLACEHOLDER__/g,
+      `<div style="background-color: ${placeholderColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
+  line = line.replace(/__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
+      `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
+  // 若該行無特殊標記，則包裝為獨立區塊
+  if (!line.includes("__PLACEHOLDER_")) {
+      line = `<div style="padding:2px 0;">${line}</div>`;
+  }
+  return line;
 }
 
+/**
+ * 重新設計提示文字內容：
+ * - 第一行顯示 key（不含橫線）
+ * - 接著顯示 sub-name
+ * - 在 sub-name 與 description 之間插入一條橫線
+ * - 最後顯示 description
+ */
 function buildTooltipString(keyword, infoData) {
-  // 將標題作為首個區塊
-  let html = `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.2); margin-bottom:4px;">${keyword}</div>`;
-  const props = Object.keys(infoData).reverse();
-  for (const prop of props) {
-    let line = infoData[prop];
-    // 將綠色標記替換為內聯HTML（獨立區塊）
-    line = line.replace(/__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
-      `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-    // 將紅色標記替換為內聯HTML（獨立區塊）
-    line = line.replace(/__PLACEHOLDER_RED__(.*?)__ENDPLACEHOLDER__/g,
-      `<div style="background-color: ${placeholderColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-    // 將藍色標記替換為內聯HTML（獨立區塊）
-    line = line.replace(/__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
-      `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-    // 若該行無特殊標記，則包裝為獨立區塊
-    if (!line.includes("__PLACEHOLDER_")) {
-      line = `<div style="padding:2px 0;">${line}</div>`;
-    }
-    html += line;
+  let html = `<div style="padding:4px 0; margin-bottom:4px; font-weight: bold;">${keyword}</div>`;
+  if (infoData["sub-name"]) {
+    html += processLine(infoData["sub-name"]);
+  }
+  if (infoData["description"]) {
+    html += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
+    html += processLine(infoData["description"]);
   }
   return html;
+}
+
+// 新增：動態調整 tooltip 位置，確保完整顯示不會超出螢幕邊界
+function adjustTooltipPosition() {
+  const tooltip = getSharedTooltip();
+  const rect = tooltip.getBoundingClientRect();
+  let currentLeft = parseInt(tooltip.style.left, 10) || 0;
+  let currentTop = parseInt(tooltip.style.top, 10) || 0;
+  const margin = 10; // 與邊界的最小間距
+
+  // 調整右邊界
+  if (rect.right > window.innerWidth) {
+    currentLeft -= (rect.right - window.innerWidth) + margin;
+  }
+  // 調整左邊界
+  if (rect.left < 0) {
+    currentLeft = margin;
+  }
+  // 調整底部邊界
+  if (rect.bottom > window.innerHeight) {
+    currentTop -= (rect.bottom - window.innerHeight) + margin;
+  }
+  // 調整頂部邊界
+  if (rect.top < 0) {
+    currentTop = margin;
+  }
+  tooltip.style.left = currentLeft + "px";
+  tooltip.style.top = currentTop + "px";
 }
 
 /**
@@ -138,26 +107,113 @@ function clearHighlight() {
   });
 }
 
-function walkTextNodes(node, callback) {
-  if (node.nodeType === Node.TEXT_NODE) {
-    callback(node);
-  } else if (node.nodeType === Node.ELEMENT_NODE) {
-    if (["SCRIPT", "STYLE", "IFRAME", "CANVAS", "SVG"].includes(node.nodeName)) return;
-    for (let i = 0; i < node.childNodes.length; i++) {
-      walkTextNodes(node.childNodes[i], callback);
-    }
-  }
-}
-
 function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * 使用 TreeWalker 一次性遍歷所有文字節點，
+ * 先收集符合關鍵字的文字節點，再依照合併正則表達式進行高亮。
+ * keyValues 為 { key, value } 陣列，功能保持與原版一致。
+ */
+function highlightAll(keyValues, root = document.body) {
+  if (!keyValues || keyValues.length === 0) return;
+
+  // 建立關鍵字對照表與關鍵字陣列
+  const mapping = {};
+  const keys = [];
+  keyValues.forEach(({ key, value }) => {
+    const lowerKey = key.toLowerCase();
+    mapping[lowerKey] = { key, infoData: value };
+    keys.push(key);
+  });
+  // 為避免子字串匹配問題，較長的關鍵字先處理
+  keys.sort((a, b) => b.length - a.length);
+  const pattern = keys.map(escapeRegExp).join("|");
+  const regex = new RegExp(`(${pattern})`, "gi");
+
+  // 使用 TreeWalker 遍歷文字節點，但先將符合的節點收集起來，避免在遍歷中修改 DOM
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: function(node) {
+      if (node.parentNode && ["SCRIPT", "STYLE", "IFRAME", "CANVAS", "SVG"].includes(node.parentNode.nodeName)) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const matchingNodes = [];
+  let currentNode;
+  while ((currentNode = walker.nextNode())) {
+    if (currentNode.nodeValue && currentNode.nodeValue.search(regex) !== -1) {
+      matchingNodes.push(currentNode);
+    }
+  }
+
+  // 針對每個符合的文字節點進行高亮替換
+  matchingNodes.forEach(node => {
+    const text = node.nodeValue;
+    const frag = document.createDocumentFragment();
+    let lastIndex = 0;
+    regex.lastIndex = 0; // 重置 regex 指標
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const matchStart = match.index;
+      const matchEnd = regex.lastIndex;
+      if (matchStart > lastIndex) {
+        frag.appendChild(document.createTextNode(text.slice(lastIndex, matchStart)));
+      }
+      const span = document.createElement("span");
+      span.className = "highlighted";
+      const matchedText = text.slice(matchStart, matchEnd);
+      span.textContent = matchedText;
+      // 預設背景設定為螢光黃
+      span.style.backgroundColor = "#ffff33";
+      const lookup = mapping[matchedText.toLowerCase()];
+      if (lookup) {
+        span.setAttribute("data-key", lookup.key);
+        span.addEventListener("mouseover", (e) => {
+          const tooltip = getSharedTooltip();
+          tooltip.innerHTML = buildTooltipString(lookup.key, lookup.infoData);
+          let posX = e.pageX;
+          let posY = e.pageY + 10;
+          tooltip.style.left = posX + "px";
+          tooltip.style.top = posY + "px";
+          tooltip.style.opacity = "1";
+          // 延遲調整位置，確保 tooltip 尺寸已更新
+          setTimeout(adjustTooltipPosition, 0);
+        });
+        span.addEventListener("mouseout", () => {
+          const tooltip = getSharedTooltip();
+          tooltip.style.opacity = "0";
+        });
+        span.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const audio = new Audio(chrome.runtime.getURL("sound.mp3"));
+          audio.play();
+          const tooltip = getSharedTooltip();
+          if (tooltip.style.opacity !== "0") {
+            tooltip.innerHTML = buildTooltipString(lookup.key, lookup.infoData);
+          }
+          // 將背景色改為灰色
+          e.currentTarget.style.backgroundColor = "#808080";
+          // 通知 popup 讀取 Gist（僅讀取，不更新遠端資料）
+          chrome.runtime.sendMessage({ action: "UPDATE_GIST" });
+        });
+      }
+      frag.appendChild(span);
+      lastIndex = matchEnd;
+    }
+    if (lastIndex < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+    node.parentNode.replaceChild(frag, node);
+  });
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "HIGHLIGHT_BATCH") {
-    message.keyValues.forEach(({ key, value }) => {
-      highlightText(key, value);
-    });
+    clearHighlight();
+    highlightAll(message.keyValues);
   } else if (message.action === "CLEAR") {
     clearHighlight();
   }
@@ -171,9 +227,7 @@ function updateHighlightsFromStorage() {
       clearHighlight();
       const jsonData = result.jsonData;
       const keyValues = Object.entries(jsonData).map(([key, value]) => ({ key, value }));
-      keyValues.forEach(({ key, value }) => {
-        highlightText(key, value);
-      });
+      highlightAll(keyValues);
     }
   });
 }

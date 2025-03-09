@@ -11,7 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
         gistInputArea = document.getElementById("gistInputArea"),
         gistUrlInput = document.getElementById("gistUrl"),
         updateGistBtn = document.getElementById("updateGistBtn"),
-        keyCountElement = document.getElementById("keyCount");
+        keyCountElement = document.getElementById("keyCount"),
+        refreshBtn = document.getElementById("refreshBtn");
 
   // 資料來源固定為Gist
   const defaultGistUrl = "https://gist.github.com/JingWen-GameMkrPro/59306ed6b3f7e9a2847712b45e554390";
@@ -232,5 +233,13 @@ document.addEventListener("DOMContentLoaded", () => {
     updateModeDisplay("highlighter");
     updateDataSourceDisplay("gist");
     updateKeyCount();
+  });
+
+  refreshBtn.addEventListener("click", () => {
+    chrome.storage.local.get("jsonData", (result) => {
+      if (result.jsonData) startHighlighterMode();
+      else alert("JSONデータがありません。先にGistから読み込んでください。");
+    });
+    stopHighlighterMode();
   });
 });
