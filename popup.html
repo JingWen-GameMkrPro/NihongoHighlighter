@@ -45,21 +45,26 @@
       gap: 10px;
       margin-bottom: 20px;
     }
-    /* 按鈕 */
+    /* 按鈕 - 漸層背景與 Apple 現代風格 */
     button {
       width: 100%;
       padding: 12px;
       border: none;
-      border-radius: 8px;
-      background-color: #2c2c2e;
-      color: #f5f5f7;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1f3b56, #f8d666);
+      color: #ffffff;
       font-size: 15px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.2s ease;
+      transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     button:hover {
-      background-color: #3a3a3c;
+      background: linear-gradient(135deg, #0A84FF, #0066CC);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    button:active {
+      transform: scale(0.98);
     }
     /* 資料來源區 */
     #dataSourceArea {
@@ -96,7 +101,7 @@
       font-size: 14px;
       color: #f5f5f7;
     }
-    /* JSON鍵數顯示區 */
+    /* JSON鍵數與計時顯示區 */
     #keysArea {
       margin-top: 20px;
       padding: 10px;
@@ -110,16 +115,21 @@
       margin-bottom: 10px;
       color: #f5f5f7;
     }
-    #keyCount {
-      font-size: 18px;
-      font-weight: 600;
-      color: #f5f5f7;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>単語ハイライト</h1>
+    <div id="infoArea">
+      <p id="currentMode">現在の状態：停止中</p>
+      <p id="keyCount">JSONキー数：0</p>
+      <p id="elapsedTime">経過時間：0ms</p>
+      <label for="highlightColor">ハイライト色：</label>
+      <!-- 移除預設值 -->
+      <input type="color" id="highlightColor">
+      <p></p>
+    </div>
+
     <div class="btn-group">
       <button id="refreshBtn">刷新</button>
       <button id="startModeBtn">ハイライト開始</button>
@@ -134,13 +144,9 @@
       </div>
     </div>
     <div id="infoArea">
-      <p id="currentMode">現在の状態：停止中</p>
       <p id="currentDataSource">データソース：Gist</p>
     </div>
-    <div id="keysArea">
-      <h3>JSONキー数</h3>
-      <div id="keyCount">0</div>
-    </div>
+    
   </div>
   <script src="popup.js"></script>
   <script src="config.js"></script>

@@ -1,3 +1,4 @@
+// popup.js
 
 // 現在可以存取環境變數
 
@@ -12,7 +13,25 @@ document.addEventListener("DOMContentLoaded", () => {
         gistUrlInput = document.getElementById("gistUrl"),
         updateGistBtn = document.getElementById("updateGistBtn"),
         keyCountElement = document.getElementById("keyCount"),
-        refreshBtn = document.getElementById("refreshBtn");
+        refreshBtn = document.getElementById("refreshBtn"),
+        elapsedTimeElement = document.getElementById("elapsedTime"),
+        highlightColorInput = document.getElementById("highlightColor");
+
+  // 從 chrome.storage 讀取預設的高亮色彩，若沒有則設定預設為 "#ffff33"
+  chrome.storage.local.get("highlightColor", (result) => {
+    const defaultColor = "#ffff33";
+    if (result.highlightColor) {
+      highlightColorInput.value = result.highlightColor;
+    } else {
+      highlightColorInput.value = defaultColor;
+      chrome.storage.local.set({ highlightColor: defaultColor });
+    }
+  });
+
+  // 當使用者更換顏色時，更新 chrome.storage 的設定
+  highlightColorInput.addEventListener("change", (event) => {
+    chrome.storage.local.set({ highlightColor: event.target.value });
+  });
 
   // 資料來源固定為Gist
   const defaultGistUrl = "https://gist.github.com/JingWen-GameMkrPro/59306ed6b3f7e9a2847712b45e554390";
@@ -38,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (result.jsonData && typeof result.jsonData === "object") {
         keys = Object.keys(result.jsonData);
       }
-      keyCountElement.textContent = keys.length > 0 ? keys.length : "0";
+      keyCountElement.textContent = keys.length > 0 ? "JSONキー数：" + keys.length : "0";
     });
   }
 
@@ -50,16 +69,6 @@ document.addEventListener("DOMContentLoaded", () => {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
-            // // 既有的 ${...} 格式置換
-            // text = text.replace(/\$\{([^}]+)\}/g, (match, refKey) => {
-            //   if (jsonData.hasOwnProperty(refKey)) {
-            //     const refObj = jsonData[refKey];
-            //     if (typeof refObj === "object" && refObj !== null && refObj.hasOwnProperty(prop)) {
-            //       return refObj[prop];
-            //     }
-            //   }
-            //   return match;
-            // });
             // 新增：&{...} 格式（背景：綠色）
             text = text.replace(/&\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
@@ -69,12 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
                   .replace(/\$\{[^}]+\}/g, "")
                   .replace(/\&\{[^}]+\}/g, "")
                   .replace(/\~\{[^}]+\}/g, "");
-                  //.replace(/\@\{[^}]+\}/g, "");
-
                   return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
-              return match;
+              return refKey;
             });
             // 新增：~{...} 格式（背景：紅色）
             text = text.replace(/~\{([^}]+)\}/g, (match, refKey) => {
@@ -85,11 +92,10 @@ document.addEventListener("DOMContentLoaded", () => {
                   .replace(/\$\{[^}]+\}/g, "")
                   .replace(/\&\{[^}]+\}/g, "")
                   .replace(/\~\{[^}]+\}/g, "");
-                  //.replace(/\@\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_RED__【似】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
-              return match;
+              return refKey;
             });
             // 新增：@{...} 格式（背景：藍色），直接顯示括弧內內容
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
@@ -123,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(apiUrl, {
         cache: "no-store",
         headers: {
-          "Authorization": "token "+ window.config.apiKey
+          "Authorization": "token " + window.config.apiKey
         }
       });
       if (!response.ok) throw new Error("Gistのデータ取得に失敗しました");
@@ -141,13 +147,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 從chrome.storage讀取JSON並傳送給contentScript以進行高亮
-  function sendHighlightMessage() {
+  function sendHighlightMessage(startTime) {
     chrome.storage.local.get("jsonData", (result) => {
       if (result.jsonData) {
         const keyValues = Object.entries(result.jsonData).map(([key, value]) => ({ key, value }));
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          // 取得使用者選擇的高亮顏色
+          const highlightColor = highlightColorInput.value;
           chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
-            chrome.tabs.sendMessage(tabs[0].id, { action: "HIGHLIGHT_BATCH", keyValues });
+            chrome.tabs.sendMessage(tabs[0].id, { action: "HIGHLIGHT_BATCH", keyValues: keyValues, startTime: startTime, highlightColor: highlightColor });
           });
         });
       }
@@ -167,8 +175,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (mode === "gist") {
         const jsonData = await fetchGistJson();
         if (jsonData) {
+          // 記錄從成功取得 JSON 開始的時間
+          const startTime = Date.now();
           chrome.storage.local.set({ jsonData }, () => {
-            sendHighlightMessage();
+            sendHighlightMessage(startTime);
             updateKeyCount();
           });
         } else {
@@ -241,5 +251,12 @@ document.addEventListener("DOMContentLoaded", () => {
       else alert("JSONデータがありません。先にGistから読み込んでください。");
     });
     stopHighlighterMode();
+  });
+
+  // 監聽 contentScript 回傳的高亮完成訊息，並顯示耗時
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "HIGHLIGHT_FINISHED") {
+      elapsedTimeElement.textContent = "経過時間：" + Math.round(message.elapsedTime) + "ms";
+    }
   });
 });

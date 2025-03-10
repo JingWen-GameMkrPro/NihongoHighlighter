@@ -115,8 +115,10 @@ function escapeRegExp(str) {
  * 使用 TreeWalker 一次性遍歷所有文字節點，
  * 先收集符合關鍵字的文字節點，再依照合併正則表達式進行高亮。
  * keyValues 為 { key, value } 陣列，功能保持與原版一致。
+ *
+ * 新增參數 highlightColor 用來設定高亮顏色（預設為螢光黃）
  */
-function highlightAll(keyValues, root = document.body) {
+function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33") {
   if (!keyValues || keyValues.length === 0) return;
 
   // 建立關鍵字對照表與關鍵字陣列
@@ -166,8 +168,8 @@ function highlightAll(keyValues, root = document.body) {
       span.className = "highlighted";
       const matchedText = text.slice(matchStart, matchEnd);
       span.textContent = matchedText;
-      // 預設背景設定為螢光黃
-      span.style.backgroundColor = "#ffff33";
+      // 使用動態傳入的高亮顏色（預設為螢光黃）
+      span.style.backgroundColor = highlightColor;
       const lookup = mapping[matchedText.toLowerCase()];
       if (lookup) {
         span.setAttribute("data-key", lookup.key);
@@ -213,7 +215,12 @@ function highlightAll(keyValues, root = document.body) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "HIGHLIGHT_BATCH") {
     clearHighlight();
-    highlightAll(message.keyValues);
+    highlightAll(message.keyValues, document.body, message.highlightColor);
+    // 如果傳入 startTime，則計算高亮處理完成的耗時並回傳給 popup
+    if (message.startTime) {
+      const elapsedTime = Date.now() - message.startTime;
+      chrome.runtime.sendMessage({ action: "HIGHLIGHT_FINISHED", elapsedTime: elapsedTime });
+    }
   } else if (message.action === "CLEAR") {
     clearHighlight();
   }
@@ -227,6 +234,7 @@ function updateHighlightsFromStorage() {
       clearHighlight();
       const jsonData = result.jsonData;
       const keyValues = Object.entries(jsonData).map(([key, value]) => ({ key, value }));
+      // 此處可加入預設的高亮顏色或從 storage 讀取（此例直接用預設）
       highlightAll(keyValues);
     }
   });
