@@ -161,7 +161,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
   
+
 
   // 開始高亮模式（設定JSON到chrome.storage並通知contentScript）
   function startHighlighterMode() {
