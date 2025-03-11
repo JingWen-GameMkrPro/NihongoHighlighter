@@ -227,18 +227,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   sendResponse();
 });
 
-// 自動更新高亮：當頁面載入或網址變更時，自動從 chrome.storage 讀取 jsonData 更新高亮
+// // 自動更新高亮：當頁面載入或網址變更時，自動從 chrome.storage 讀取 jsonData 更新高亮
+// function updateHighlightsFromStorage() {
+//   chrome.storage.local.get("jsonData", (result) => {
+//     if (result.jsonData) {
+//       clearHighlight();
+//       const jsonData = result.jsonData;
+//       const keyValues = Object.entries(jsonData).map(([key, value]) => ({ key, value }));
+//       // 此處可加入預設的高亮顏色或從 storage 讀取（此例直接用預設）
+//       highlightAll(keyValues);
+//     }
+//   });
+// }
+
 function updateHighlightsFromStorage() {
-  chrome.storage.local.get("jsonData", (result) => {
-    if (result.jsonData) {
+  chrome.storage.local.get(["jsonData", "highlightColor"], (result) => {
+    // 1. 取得儲存的 JSON
+    const jsonData = result.jsonData;
+    // 2. 取得儲存的自訂顏色，若取不到，就用預設色
+    const savedColor = result.highlightColor || "#ffff33"; 
+
+    if (jsonData) {
       clearHighlight();
-      const jsonData = result.jsonData;
       const keyValues = Object.entries(jsonData).map(([key, value]) => ({ key, value }));
-      // 此處可加入預設的高亮顏色或從 storage 讀取（此例直接用預設）
-      highlightAll(keyValues);
+      // 3. 傳入自訂顏色
+      highlightAll(keyValues, document.body, savedColor);
     }
   });
 }
+
 
 window.addEventListener("load", updateHighlightsFromStorage);
 window.addEventListener("popstate", updateHighlightsFromStorage);
