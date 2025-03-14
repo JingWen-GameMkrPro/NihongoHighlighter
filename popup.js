@@ -83,7 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refObj = jsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description
-                  .replace(/\$\{[^}]+\}/g, "")
                   .replace(/\&\{[^}]+\}/g, "")
                   .replace(/\~\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
@@ -91,13 +90,12 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return refKey;
             });
-            // 新增：~\{...} 格式（背景：紅色）
+            // 新增：~{...} 格式（背景：紅色）
             text = text.replace(/~\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
                 const refObj = jsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description
-                  .replace(/\$\{[^}]+\}/g, "")
                   .replace(/\&\{[^}]+\}/g, "")
                   .replace(/\~\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_RED__【似】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
@@ -105,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return refKey;
             });
-            // 新增：@\{...} 格式（背景：藍色），直接顯示括弧內內容
+            // 新增：@{...} 格式（背景：藍色），直接顯示括弧內內容
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
               return `__PLACEHOLDER_BLUE__【例】：　${content}__ENDPLACEHOLDER__`;
             });
