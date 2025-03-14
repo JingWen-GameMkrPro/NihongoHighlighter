@@ -70,44 +70,44 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // JSON內的佔位符及換行處理（新格式支援）
-  function substitutePlaceholders(jsonData) {
+  function substitutePlaceholders(originalJsonData) {
+    // 先進行深層複製，保留原始資料
+    const jsonData = JSON.parse(JSON.stringify(originalJsonData));
+  
     Object.keys(jsonData).forEach(mainKey => {
       const obj = jsonData[mainKey];
       if (typeof obj === "object" && obj !== null) {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
-            // 新增：&{...} 格式（背景：綠色）
+            // 使用原始的 jsonData 做參照，避免重複替換影響其他資料
             text = text.replace(/&\{([^}]+)\}/g, (match, refKey) => {
-              if (jsonData.hasOwnProperty(refKey)) {
-                const refObj = jsonData[refKey];
+              if (originalJsonData.hasOwnProperty(refKey)) {
+                const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description
-                  .replace(/\&\{[^}]+\}/g, "")
-                  .replace(/\~\{[^}]+\}/g, "");
+                    .replace(/\&\{[^}]+\}/g, "")
+                    .replace(/\~\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
               return refKey;
             });
-            // 新增：~{...} 格式（背景：紅色）
             text = text.replace(/~\{([^}]+)\}/g, (match, refKey) => {
-              if (jsonData.hasOwnProperty(refKey)) {
-                const refObj = jsonData[refKey];
+              if (originalJsonData.hasOwnProperty(refKey)) {
+                const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description
-                  .replace(/\&\{[^}]+\}/g, "")
-                  .replace(/\~\{[^}]+\}/g, "");
+                    .replace(/\&\{[^}]+\}/g, "")
+                    .replace(/\~\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_RED__【似】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
               return refKey;
             });
-            // 新增：@{...} 格式（背景：藍色），直接顯示括弧內內容
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
               return `__PLACEHOLDER_BLUE__【例】：　${content}__ENDPLACEHOLDER__`;
             });
-            // 換行處理
             text = text.replace(/\\n/g, "\n");
             obj[prop] = text;
           }
@@ -116,6 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     return jsonData;
   }
+  
 
   // 分頁取得所有區塊資料
   async function fetchAllBlocks(pageId, notionToken) {
