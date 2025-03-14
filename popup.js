@@ -1,64 +1,36 @@
 // popup.js
-
-// 現在可以存取環境變數
-
+let processTime = 0;
+let isNeedRecordTime = 0;
 document.addEventListener("DOMContentLoaded", () => {
-  // DOM元素的取得
+  // 取得 DOM 元素
   const startModeBtn = document.getElementById("startModeBtn"),
         stopModeBtn = document.getElementById("stopModeBtn"),
         deleteStorageBtn = document.getElementById("deleteStorageBtn"),
         currentModeP = document.getElementById("currentMode"),
         currentDataSourceP = document.getElementById("currentDataSource"),
-        gistInputArea = document.getElementById("gistInputArea"),
-        gistUrlInput = document.getElementById("gistUrl"),
-        updateGistBtn = document.getElementById("updateGistBtn"),
         keyCountElement = document.getElementById("keyCount"),
         refreshBtn = document.getElementById("refreshBtn"),
         elapsedTimeElement = document.getElementById("elapsedTime"),
         highlightColorInput = document.getElementById("highlightColor"),
-        // 新增：Fetch Notion Data 按鈕
-        fetchNotionBtn = document.getElementById("fetchNotionBtn");
-
-  // 新增 - 驗證區塊相關
-  const verifyBtn = document.getElementById("verifyBtn"),
+        fetchNotionBtn = document.getElementById("fetchNotionBtn"),
+        verifyBtn = document.getElementById("verifyBtn"),
         localHostInput = document.getElementById("localhostInput"),
         keyInput = document.getElementById("keyInput"),
-        verifyResult = document.getElementById("verifyResult");
+        verifyResult = document.getElementById("verifyResult"),
+        notionPageIdInput = document.getElementById("notionPageId"),
+        fetchStatusEl = document.getElementById("fetchStatus");
 
-  // 從 chrome.storage 讀取預設的高亮色彩，若沒有則設定預設為 "#ffff33"
-  chrome.storage.local.get("highlightColor", (result) => {
-    const defaultColor = "#ffff33";
-    if (result.highlightColor) {
-      highlightColorInput.value = result.highlightColor;
-    } else {
-      highlightColorInput.value = defaultColor;
-      chrome.storage.local.set({ highlightColor: defaultColor });
-    }
-  });
-
-  // 當使用者更換顏色時，更新 chrome.storage 的設定
-  highlightColorInput.addEventListener("change", (event) => {
-    chrome.storage.local.set({ highlightColor: event.target.value });
-  });
-
-  // 資料來源固定為Gist
-  const defaultGistUrl = "https://gist.github.com/JingWen-GameMkrPro/59306ed6b3f7e9a2847712b45e554390";
-  gistUrlInput.value = defaultGistUrl;
-  chrome.storage.local.set({ dataSource: "gist" });
-  updateDataSourceDisplay("gist");
-
-  // 現在狀態顯示更新
+  // 補回 updateModeDisplay
   function updateModeDisplay(mode) {
     currentModeP.textContent = "現在の状態：" + (mode === "highlighter" ? "ハイライト中" : "停止中");
   }
 
-  // 資料來源顯示更新（固定為Gist）
+  // 更新資料來源顯示
   function updateDataSourceDisplay(mode) {
-    gistInputArea.style.display = "block";
-    currentDataSourceP.textContent = "データソース：Gist";
+    currentDataSourceP.textContent = "データソース：" + mode;
   }
 
-  // 更新JSON鍵數顯示
+  // 更新 JSON 鍵數顯示
   function updateKeyCount() {
     chrome.storage.local.get("jsonData", (result) => {
       let keys = [];
@@ -69,18 +41,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // JSON內的佔位符及換行處理（新格式支援）
+  // 佔位符及換行處理
   function substitutePlaceholders(originalJsonData) {
-    // 先進行深層複製，保留原始資料
     const jsonData = JSON.parse(JSON.stringify(originalJsonData));
-  
     Object.keys(jsonData).forEach(mainKey => {
       const obj = jsonData[mainKey];
       if (typeof obj === "object" && obj !== null) {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
-            // 使用原始的 jsonData 做參照，避免重複替換影響其他資料
             text = text.replace(/&\{([^}]+)\}/g, (match, refKey) => {
               if (originalJsonData.hasOwnProperty(refKey)) {
                 const refObj = originalJsonData[refKey];
@@ -116,9 +85,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     return jsonData;
   }
-  
 
-  // 分頁取得所有區塊資料
+  // 分頁取得所有區塊
   async function fetchAllBlocks(pageId, notionToken) {
     let allBlocks = [];
     let hasMore = true;
@@ -144,54 +112,64 @@ document.addEventListener("DOMContentLoaded", () => {
     return allBlocks;
   }
 
-  // 從Gist取得最新JSON（僅在按鈕觸發時更新）
-  async function fetchGistJson() {
-    const gistUrl = gistUrlInput.value.trim();
-    if (!gistUrl) {
-      alert("GistのURLを入力してください！");
-      return null;
-    }
-    const parts = gistUrl.split("/"),
-          gistId = parts[4];
-    if (!gistId) {
-      alert("GistのURLからIDを取得できません");
-      return null;
-    }
-    const apiUrl = `https://api.github.com/gists/${gistId}?t=${Date.now()}`;
-    try {
-      const response = await fetch(apiUrl, {
-        cache: "no-store",
-        headers: {
-          "Authorization": "token " + window.config.apiKey
-        }
+  // 只用於刷新 / Fetch Notion Data 時才 fetch Notion
+  async function fetchNotionData() {
+    // 從 chrome.storage 讀取 Notion Page ID，若未儲存則使用預設值
+    const storedPageId = await new Promise((resolve) => {
+      chrome.storage.local.get("notionPageId", (result) => {
+        resolve(result.notionPageId || config.apiPageID);
       });
-      if (!response.ok) throw new Error("Gistのデータ取得に失敗しました");
-      const gistData = await response.json();
-      const files = gistData.files,
-            fileKeys = Object.keys(files);
-      if (!fileKeys.length) throw new Error("このGistにファイルがありません");
-      let jsonData = JSON.parse(files[fileKeys[0]].content);
-      jsonData = substitutePlaceholders(jsonData);
-      return jsonData;
+    });
+    // 請自行替換 notionToken 為你的值
+    const notionToken = config.apiToken;
+    // 更新狀態提示
+    fetchStatusEl.textContent = "データステータス："+"処理中...";
+    try {
+      const allBlocks = await fetchAllBlocks(storedPageId, notionToken);
+      let notionJson = {};
+      if (allBlocks && Array.isArray(allBlocks)) {
+        allBlocks.forEach(block => {
+          if (
+            block.type === "paragraph" &&
+            block.paragraph &&
+            block.paragraph.rich_text &&
+            block.paragraph.rich_text.length > 0
+          ) {
+            const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
+            const parts = textContent.split('/');
+            if (parts.length >= 3) {
+              const key = parts[0].trim();
+              const subName = parts[1].trim();
+              const description = parts.slice(2).join('/').trim();
+              notionJson[key] = {
+                "sub-name": subName,
+                "description": description
+              };
+            }
+          }
+        });
+      }
+      notionJson = substitutePlaceholders(notionJson);
+      fetchStatusEl.textContent = "データステータス："+"完成";
+      return notionJson;
     } catch (error) {
-      alert("Gistのデータ取得に失敗しました：" + error.message);
+      console.error("Error fetching Notion data:", error);
+      fetchStatusEl.textContent = "データステータス："+"失敗";
       return null;
     }
   }
 
-  // 從chrome.storage讀取JSON並傳送給contentScript以進行高亮
-  function sendHighlightMessage(startTime) {
-    chrome.storage.local.get("jsonData", (result) => {
+  // 僅傳送已儲存的 JSON 進行高亮
+  function sendHighlightMessage() {
+    chrome.storage.local.get(["jsonData", "highlightColor"], (result) => {
       if (result.jsonData) {
         const keyValues = Object.entries(result.jsonData).map(([key, value]) => ({ key, value }));
+        const highlightColor = result.highlightColor || highlightColorInput.value || "#ffff33";
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          // 取得使用者選擇的高亮顏色
-          const highlightColor = highlightColorInput.value;
           chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
             chrome.tabs.sendMessage(tabs[0].id, {
               action: "HIGHLIGHT_BATCH",
               keyValues: keyValues,
-              startTime: startTime,
               highlightColor: highlightColor
             });
           });
@@ -200,189 +178,134 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 開始高亮模式（設定JSON到chrome.storage並通知contentScript）
-  function startHighlighterMode() {
-    updateHighlighter();
-    updateModeDisplay("highlighter");
-  }
-
-  // 初次更新（僅在按鈕觸發時更新，不使用自動更新）
+  // 「刷新」：僅 fetch Notion 資料並更新 storage，然後重新高亮
   async function updateHighlighter() {
-    chrome.storage.local.get("dataSource", async (result) => {
-      const mode = result.dataSource || "gist";
-      if (mode === "gist") {
-        const jsonData = await fetchGistJson();
-        if (jsonData) {
-          // 記錄從成功取得 JSON 開始的時間
-          const startTime = Date.now();
-          chrome.storage.local.set({ jsonData }, () => {
-            sendHighlightMessage(startTime);
-            updateKeyCount();
-          });
-        } else {
-          updateKeyCount();
-        }
-      } else {
+    const newData = await fetchNotionData();
+    if (newData) {
+      chrome.storage.local.set({ jsonData: newData }, () => {
         sendHighlightMessage();
         updateKeyCount();
-      }
-    });
-  }
-
-  // 停止高亮模式
-  function stopHighlighterMode() {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
-    });
-    updateModeDisplay("stopped");
-  }
-
-  // 讀取Gist中的JSON（僅讀取，不更新遠端資料）
-  async function updateGistData() {
-    const jsonData = await fetchGistJson();
-    if (jsonData) {
-      chrome.storage.local.set({ jsonData, dataSource: "gist" }, () => {
-        updateDataSourceDisplay("gist");
+        updateModeDisplay("highlighter");
       });
     } else {
       updateKeyCount();
     }
   }
 
-  // 當按下Gist讀取按鈕時，從Gist取得JSON
-  updateGistBtn.addEventListener("click", async () => {
-    await updateGistData();
+  // 初始將 dataSource 設為 Notion
+  chrome.storage.local.set({ dataSource: "notion" }, () => {
+    updateModeDisplay("highlighter");
+    updateDataSourceDisplay("Notion");
+    updateKeyCount();
   });
 
-  // 開始高亮按鈕事件
-  startModeBtn.addEventListener("click", () => {
-    chrome.storage.local.get("jsonData", (result) => {
-      if (result.jsonData) startHighlighterMode();
-      else alert("JSONデータがありません。先にGistから読み込んでください。");
+  // 在 popup 載入時，讀取 highlightColor 與 Notion Page ID
+  chrome.storage.local.get(["highlightColor", "notionPageId"], (res) => {
+    if (res.highlightColor) {
+      highlightColorInput.value = res.highlightColor;
+    } else {
+      highlightColorInput.value = "#ffff33";
+      chrome.storage.local.set({ highlightColor: "#ffff33" });
+    }
+    if (res.notionPageId) {
+      notionPageIdInput.value = res.notionPageId;
+    } else {
+      // 預設值
+      notionPageIdInput.value = config.apiPageID;
+      chrome.storage.local.set({ notionPageId: notionPageIdInput.value });
+    }
+  });
+
+  // 當使用者更改 Notion Page ID 時，更新 chrome.storage
+  notionPageIdInput.addEventListener("change", (e) => {
+    const newPageId = e.target.value.trim();
+    chrome.storage.local.set({ notionPageId: newPageId });
+  });
+
+  // 當使用者改變高亮顏色，只用現有 JSON 更新
+  highlightColorInput.addEventListener("change", (e) => {
+    chrome.storage.local.set({ highlightColor: e.target.value }, () => {
+      sendHighlightMessage();
     });
   });
 
-  // 停止高亮按鈕事件
-  stopModeBtn.addEventListener("click", stopHighlighterMode);
+  // 「ハイライト開始」：若有 JSON 直接高亮，否則提示先 fetch
+  startModeBtn.addEventListener("click", () => {
+    chrome.storage.local.get("jsonData", (result) => {
+      if (result.jsonData) {
+        sendHighlightMessage();
+        updateModeDisplay("highlighter");
+      } else {
+        alert("JSONデータがありません。先に Notion から読み込んでください。");
+      }
+    });
+  });
 
-  // JSON刪除按鈕事件
+  // 「ハイライト停止」
+  stopModeBtn.addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
+    });
+    updateModeDisplay("stopped");
+  });
+
+  // 「JSON削除」
   deleteStorageBtn.addEventListener("click", () => {
     chrome.storage.local.remove(["jsonData", "dataSource"], () => {
       alert("JSONデータを削除しました");
-      stopHighlighterMode();
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
+      });
       updateModeDisplay("stopped");
       currentDataSourceP.textContent = "データソース：なし";
       keyCountElement.textContent = "0";
     });
   });
 
-  // 初始設定：強制將資料來源設為Gist
-  chrome.storage.local.set({ dataSource: "gist" }, () => {
-    updateModeDisplay("highlighter");
-    updateDataSourceDisplay("gist");
-    updateKeyCount();
-  });
-
+  // 「刷新」按鈕：從 Notion fetch 資料
   refreshBtn.addEventListener("click", () => {
-    chrome.storage.local.get("jsonData", (result) => {
-      if (result.jsonData) startHighlighterMode();
-      else alert("JSONデータがありません。先にGistから読み込んでください。");
-    });
-    stopHighlighterMode();
+    isNeedRecordTime = 1;
+    processTime = Date.now();
+    updateHighlighter();
   });
 
-  // 監聽 contentScript 回傳的高亮完成訊息，並顯示耗時
+
+  // 監聽 contentScript 回傳的高亮完成訊息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "HIGHLIGHT_FINISHED") {
-      elapsedTimeElement.textContent = "経過時間：" + Math.round(message.elapsedTime) + "ms";
+      if(isNeedRecordTime)
+      {
+        const elapsedTime = Date.now() - processTime;
+        elapsedTimeElement.textContent = "経過時間：" + Math.round(elapsedTime) + "ms";
+        isNeedRecordTime = 0;
+      }
     }
+    sendResponse();
   });
 
-  // -------------------------------------------------------
-  // 新增「驗證」功能 (Local Host + 金鑰匙)
-  // -------------------------------------------------------
-  verifyBtn.addEventListener("click", async () => {
-    const host = localHostInput.value.trim();
-    const keyVal = keyInput.value.trim();
-
-    // 簡單檢查是否有輸入
-    if (!host || !keyVal) {
-      alert("請輸入 Local Host 及 金鑰匙密碼！");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${host}/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: keyVal })
-      });
-
-      if (!response.ok) {
-        throw new Error("驗證請求失敗");
+  // Popup 載入時，若已有 JSON 就直接用舊資料高亮（不 fetch）
+  window.addEventListener("load", () => {
+    chrome.storage.local.get("jsonData", (result) => {
+      if (result.jsonData) {
+        sendHighlightMessage();
       }
-
-      const data = await response.json();
-      if (data.result === true) {
-        verifyResult.textContent = `驗證成功！gistUrl: ${data.gistUrl}, gistToken: ${data.gistToken}`;
-      } else {
-        verifyResult.textContent = "驗證失敗";
-      }
-    } catch (err) {
-      console.error(err);
-      verifyResult.textContent = "驗證過程發生錯誤";
-    }
+    });
   });
 
-  // -------------------------------------------------------
-  // 新增：Fetch Notion Data 按鈕事件 - 取得 Page 區塊內容並轉換格式
-  // -------------------------------------------------------
-  fetchNotionBtn.addEventListener("click", async () => {
-    // 請將下方的 your-page-id 與 your-secret-notion-token 替換成你在 Notion 中取得的值
-    const pageId = "1b6b9e0d4f1180fb80e4f4eaa40f311e";
-    const notionToken = "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";
-    try {
-      // 使用分頁機制取得所有區塊
-      const allBlocks = await fetchAllBlocks(pageId, notionToken);
-      console.log("All Notion page blocks:", allBlocks);
-      
-      // 將 Notion 的區塊資料轉換成 gist json 格式
-      // 依照每筆區塊文字以 "/" 分隔，取第一、二、三段分別作為 key、sub-name 與 description
-      let gistJson = {};
-      if (allBlocks && Array.isArray(allBlocks)) {
-        allBlocks.forEach(block => {
-          if (block.type === "paragraph" &&
-              block.paragraph &&
-              block.paragraph.rich_text &&
-              block.paragraph.rich_text.length > 0) {
-            const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
-            // 如果有內容，依 "/" 分割成三個部分
-            const parts = textContent.split('/');
-            if (parts.length >= 3) {
-              const key = parts[0].trim();
-              const subName = parts[1].trim();
-              // 若有多個 "/" 則將後面部分合併為 description
-              const description = parts.slice(2).join('/').trim();
-              gistJson[key] = {
-                "sub-name": subName,
-                "description": description
-              };
-            }
-          }
-        });
-      }
-      // 保留原有處理佔位符的功能
-      gistJson = substitutePlaceholders(gistJson);
-      
-      console.log("Transformed gist JSON:", gistJson);
-      
-      // 將轉換後的 JSON 儲存，並透過 sendHighlightMessage 通知 contentScript 進行高亮
-      chrome.storage.local.set({ jsonData: gistJson }, () => {
-        sendHighlightMessage(Date.now());
-        updateKeyCount();
-      });
-    } catch (error) {
-      console.error("Error fetching Notion page data:", error);
-    }
+  // 其餘事件（popstate, hashchange）僅使用現有 JSON 更新高亮
+  window.addEventListener("popstate", () => {
+    sendHighlightMessage();
   });
+  window.addEventListener("hashchange", () => {
+    sendHighlightMessage();
+  });
+
+  (function(history) {
+    const pushState = history.pushState;
+    history.pushState = function(state) {
+      const ret = pushState.apply(history, arguments);
+      window.dispatchEvent(new Event("popstate"));
+      return ret;
+    };
+  })(window.history);
 });

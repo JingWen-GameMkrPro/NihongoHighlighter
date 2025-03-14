@@ -31,7 +31,7 @@ function getSharedTooltip() {
   return window.sharedTooltip;
 }
 
-// 新增輔助函數，用於處理文字中內建的佔位符轉換
+// 處理文字中內建的佔位符轉換
 function processLine(line) {
   line = line.replace(/__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
       `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
@@ -39,7 +39,6 @@ function processLine(line) {
       `<div style="background-color: ${placeholderColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
   line = line.replace(/__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
       `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-  // 若該行無特殊標記，則包裝為獨立區塊
   if (!line.includes("__PLACEHOLDER_")) {
       line = `<div style="padding:2px 0;">${line}</div>`;
   }
@@ -65,27 +64,22 @@ function buildTooltipString(keyword, infoData) {
   return html;
 }
 
-// 新增：動態調整 tooltip 位置，確保完整顯示不會超出螢幕邊界
+// 動態調整 tooltip 位置
 function adjustTooltipPosition() {
   const tooltip = getSharedTooltip();
   const rect = tooltip.getBoundingClientRect();
   let currentLeft = parseInt(tooltip.style.left, 10) || 0;
   let currentTop = parseInt(tooltip.style.top, 10) || 0;
-  const margin = 10; // 與邊界的最小間距
-
-  // 調整右邊界
+  const margin = 10;
   if (rect.right > window.innerWidth) {
     currentLeft -= (rect.right - window.innerWidth) + margin;
   }
-  // 調整左邊界
   if (rect.left < 0) {
     currentLeft = margin;
   }
-  // 調整底部邊界
   if (rect.bottom > window.innerHeight) {
     currentTop -= (rect.bottom - window.innerHeight) + margin;
   }
-  // 調整頂部邊界
   if (rect.top < 0) {
     currentTop = margin;
   }
@@ -112,16 +106,10 @@ function escapeRegExp(str) {
 }
 
 /**
- * 使用 TreeWalker 一次性遍歷所有文字節點，
- * 先收集符合關鍵字的文字節點，再依照合併正則表達式進行高亮。
- * keyValues 為 { key, value } 陣列，功能保持與原版一致。
- *
- * 新增參數 highlightColor 用來設定高亮顏色（預設為螢光黃）
+ * 使用 TreeWalker 遍歷所有文字節點，依照正則替換進行高亮
  */
 function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33") {
   if (!keyValues || keyValues.length === 0) return;
-
-  // 建立關鍵字對照表與關鍵字陣列
   const mapping = {};
   const keys = [];
   keyValues.forEach(({ key, value }) => {
@@ -129,12 +117,9 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
     mapping[lowerKey] = { key, infoData: value };
     keys.push(key);
   });
-  // 為避免子字串匹配問題，較長的關鍵字先處理
   keys.sort((a, b) => b.length - a.length);
   const pattern = keys.map(escapeRegExp).join("|");
   const regex = new RegExp(`(${pattern})`, "gi");
-
-  // 使用 TreeWalker 遍歷文字節點，但先將符合的節點收集起來，避免在遍歷中修改 DOM
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: function(node) {
       if (node.parentNode && ["SCRIPT", "STYLE", "IFRAME", "CANVAS", "SVG"].includes(node.parentNode.nodeName)) {
@@ -150,13 +135,11 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
       matchingNodes.push(currentNode);
     }
   }
-
-  // 針對每個符合的文字節點進行高亮替換
   matchingNodes.forEach(node => {
     const text = node.nodeValue;
     const frag = document.createDocumentFragment();
     let lastIndex = 0;
-    regex.lastIndex = 0; // 重置 regex 指標
+    regex.lastIndex = 0;
     let match;
     while ((match = regex.exec(text)) !== null) {
       const matchStart = match.index;
@@ -168,7 +151,6 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
       span.className = "highlighted";
       const matchedText = text.slice(matchStart, matchEnd);
       span.textContent = matchedText;
-      // 使用動態傳入的高亮顏色（預設為螢光黃）
       span.style.backgroundColor = highlightColor;
       const lookup = mapping[matchedText.toLowerCase()];
       if (lookup) {
@@ -181,7 +163,6 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
           tooltip.style.left = posX + "px";
           tooltip.style.top = posY + "px";
           tooltip.style.opacity = "1";
-          // 延遲調整位置，確保 tooltip 尺寸已更新
           setTimeout(adjustTooltipPosition, 0);
         });
         span.addEventListener("mouseout", () => {
@@ -196,9 +177,7 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
           if (tooltip.style.opacity !== "0") {
             tooltip.innerHTML = buildTooltipString(lookup.key, lookup.infoData);
           }
-          // 將背景色改為灰色
           e.currentTarget.style.backgroundColor = "#808080";
-          // 通知 popup 讀取 Gist（僅讀取，不更新遠端資料）
           chrome.runtime.sendMessage({ action: "UPDATE_GIST" });
         });
       }
@@ -216,46 +195,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "HIGHLIGHT_BATCH") {
     clearHighlight();
     highlightAll(message.keyValues, document.body, message.highlightColor);
-    // 如果傳入 startTime，則計算高亮處理完成的耗時並回傳給 popup
-    if (message.startTime) {
-      const elapsedTime = Date.now() - message.startTime;
-      chrome.runtime.sendMessage({ action: "HIGHLIGHT_FINISHED", elapsedTime: elapsedTime });
-    }
+    chrome.runtime.sendMessage({ action: "HIGHLIGHT_FINISHED" });
   } else if (message.action === "CLEAR") {
     clearHighlight();
-  }
+  } 
   sendResponse();
 });
 
-// // 自動更新高亮：當頁面載入或網址變更時，自動從 chrome.storage 讀取 jsonData 更新高亮
-// function updateHighlightsFromStorage() {
-//   chrome.storage.local.get("jsonData", (result) => {
-//     if (result.jsonData) {
-//       clearHighlight();
-//       const jsonData = result.jsonData;
-//       const keyValues = Object.entries(jsonData).map(([key, value]) => ({ key, value }));
-//       // 此處可加入預設的高亮顏色或從 storage 讀取（此例直接用預設）
-//       highlightAll(keyValues);
-//     }
-//   });
-// }
-
 function updateHighlightsFromStorage() {
   chrome.storage.local.get(["jsonData", "highlightColor"], (result) => {
-    // 1. 取得儲存的 JSON
     const jsonData = result.jsonData;
-    // 2. 取得儲存的自訂顏色，若取不到，就用預設色
-    const savedColor = result.highlightColor || "#ffff33"; 
-
+    const savedColor = result.highlightColor || "#ffff33";
     if (jsonData) {
       clearHighlight();
       const keyValues = Object.entries(jsonData).map(([key, value]) => ({ key, value }));
-      // 3. 傳入自訂顏色
       highlightAll(keyValues, document.body, savedColor);
     }
   });
 }
-
 
 window.addEventListener("load", updateHighlightsFromStorage);
 window.addEventListener("popstate", updateHighlightsFromStorage);
