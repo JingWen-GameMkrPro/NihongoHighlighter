@@ -15,7 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
         keyCountElement = document.getElementById("keyCount"),
         refreshBtn = document.getElementById("refreshBtn"),
         elapsedTimeElement = document.getElementById("elapsedTime"),
-        highlightColorInput = document.getElementById("highlightColor");
+        highlightColorInput = document.getElementById("highlightColor"),
+        // 新增：Fetch Notion Data 按鈕
+        fetchNotionBtn = document.getElementById("fetchNotionBtn");
 
   // 新增 - 驗證區塊相關
   const verifyBtn = document.getElementById("verifyBtn"),
@@ -117,7 +119,33 @@ document.addEventListener("DOMContentLoaded", () => {
     return jsonData;
   }
 
-  // 從Gist取得最新JSON（僅在按下按鈕時更新）
+  // 分頁取得所有區塊資料
+  async function fetchAllBlocks(pageId, notionToken) {
+    let allBlocks = [];
+    let hasMore = true;
+    let startCursor = undefined;
+    while (hasMore) {
+      let url = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
+      if (startCursor) {
+        url += `&start_cursor=${startCursor}`;
+      }
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${notionToken}`,
+          "Notion-Version": "2022-06-28",
+          "Content-Type": "application/json"
+        }
+      });
+      const data = await response.json();
+      allBlocks = allBlocks.concat(data.results);
+      hasMore = data.has_more;
+      startCursor = data.next_cursor;
+    }
+    return allBlocks;
+  }
+
+  // 從Gist取得最新JSON（僅在按鈕觸發時更新）
   async function fetchGistJson() {
     const gistUrl = gistUrlInput.value.trim();
     if (!gistUrl) {
@@ -271,7 +299,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-
   // -------------------------------------------------------
   // 新增「驗證」功能 (Local Host + 金鑰匙)
   // -------------------------------------------------------
@@ -286,8 +313,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      // 這裡示範用 POST 對指定的 /verify 端點進行驗證
-      // 實際可依你的後端需求自行調整
       const response = await fetch(`${host}/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -300,7 +325,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await response.json();
       if (data.result === true) {
-        // 若驗證成功，後端會返回 gistUrl、gistToken
         verifyResult.textContent = `驗證成功！gistUrl: ${data.gistUrl}, gistToken: ${data.gistToken}`;
       } else {
         verifyResult.textContent = "驗證失敗";
@@ -308,6 +332,58 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.error(err);
       verifyResult.textContent = "驗證過程發生錯誤";
+    }
+  });
+
+  // -------------------------------------------------------
+  // 新增：Fetch Notion Data 按鈕事件 - 取得 Page 區塊內容並轉換格式
+  // -------------------------------------------------------
+  fetchNotionBtn.addEventListener("click", async () => {
+    // 請將下方的 your-page-id 與 your-secret-notion-token 替換成你在 Notion 中取得的值
+    const pageId = "1b6b9e0d4f1180fb80e4f4eaa40f311e";
+    const notionToken = "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";
+    try {
+      // 使用分頁機制取得所有區塊
+      const allBlocks = await fetchAllBlocks(pageId, notionToken);
+      console.log("All Notion page blocks:", allBlocks);
+      
+      // 將 Notion 的區塊資料轉換成 gist json 格式
+      // 依照每筆區塊文字以 "/" 分隔，取第一、二、三段分別作為 key、sub-name 與 description
+      let gistJson = {};
+      if (allBlocks && Array.isArray(allBlocks)) {
+        allBlocks.forEach(block => {
+          if (block.type === "paragraph" &&
+              block.paragraph &&
+              block.paragraph.rich_text &&
+              block.paragraph.rich_text.length > 0) {
+            const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
+            // 如果有內容，依 "/" 分割成三個部分
+            const parts = textContent.split('/');
+            if (parts.length >= 3) {
+              const key = parts[0].trim();
+              const subName = parts[1].trim();
+              // 若有多個 "/" 則將後面部分合併為 description
+              const description = parts.slice(2).join('/').trim();
+              gistJson[key] = {
+                "sub-name": subName,
+                "description": description
+              };
+            }
+          }
+        });
+      }
+      // 保留原有處理佔位符的功能
+      gistJson = substitutePlaceholders(gistJson);
+      
+      console.log("Transformed gist JSON:", gistJson);
+      
+      // 將轉換後的 JSON 儲存，並透過 sendHighlightMessage 通知 contentScript 進行高亮
+      chrome.storage.local.set({ jsonData: gistJson }, () => {
+        sendHighlightMessage(Date.now());
+        updateKeyCount();
+      });
+    } catch (error) {
+      console.error("Error fetching Notion page data:", error);
     }
   });
 });
