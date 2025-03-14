@@ -17,6 +17,12 @@ document.addEventListener("DOMContentLoaded", () => {
         elapsedTimeElement = document.getElementById("elapsedTime"),
         highlightColorInput = document.getElementById("highlightColor");
 
+  // 新增 - 驗證區塊相關
+  const verifyBtn = document.getElementById("verifyBtn"),
+        localHostInput = document.getElementById("localhostInput"),
+        keyInput = document.getElementById("keyInput"),
+        verifyResult = document.getElementById("verifyResult");
+
   // 從 chrome.storage 讀取預設的高亮色彩，若沒有則設定預設為 "#ffff33"
   chrome.storage.local.get("highlightColor", (result) => {
     const defaultColor = "#ffff33";
@@ -83,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return refKey;
             });
-            // 新增：~{...} 格式（背景：紅色）
+            // 新增：~\{...} 格式（背景：紅色）
             text = text.replace(/~\{([^}]+)\}/g, (match, refKey) => {
               if (jsonData.hasOwnProperty(refKey)) {
                 const refObj = jsonData[refKey];
@@ -97,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return refKey;
             });
-            // 新增：@{...} 格式（背景：藍色），直接顯示括弧內內容
+            // 新增：@\{...} 格式（背景：藍色），直接顯示括弧內內容
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
               return `__PLACEHOLDER_BLUE__【例】：　${content}__ENDPLACEHOLDER__`;
             });
@@ -155,15 +161,17 @@ document.addEventListener("DOMContentLoaded", () => {
           // 取得使用者選擇的高亮顏色
           const highlightColor = highlightColorInput.value;
           chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
-            chrome.tabs.sendMessage(tabs[0].id, { action: "HIGHLIGHT_BATCH", keyValues: keyValues, startTime: startTime, highlightColor: highlightColor });
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: "HIGHLIGHT_BATCH",
+              keyValues: keyValues,
+              startTime: startTime,
+              highlightColor: highlightColor
+            });
           });
         });
       }
     });
   }
-
-  
-
 
   // 開始高亮模式（設定JSON到chrome.storage並通知contentScript）
   function startHighlighterMode() {
@@ -260,6 +268,46 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "HIGHLIGHT_FINISHED") {
       elapsedTimeElement.textContent = "経過時間：" + Math.round(message.elapsedTime) + "ms";
+    }
+  });
+
+
+  // -------------------------------------------------------
+  // 新增「驗證」功能 (Local Host + 金鑰匙)
+  // -------------------------------------------------------
+  verifyBtn.addEventListener("click", async () => {
+    const host = localHostInput.value.trim();
+    const keyVal = keyInput.value.trim();
+
+    // 簡單檢查是否有輸入
+    if (!host || !keyVal) {
+      alert("請輸入 Local Host 及 金鑰匙密碼！");
+      return;
+    }
+
+    try {
+      // 這裡示範用 POST 對指定的 /verify 端點進行驗證
+      // 實際可依你的後端需求自行調整
+      const response = await fetch(`${host}/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: keyVal })
+      });
+
+      if (!response.ok) {
+        throw new Error("驗證請求失敗");
+      }
+
+      const data = await response.json();
+      if (data.result === true) {
+        // 若驗證成功，後端會返回 gistUrl、gistToken
+        verifyResult.textContent = `驗證成功！gistUrl: ${data.gistUrl}, gistToken: ${data.gistToken}`;
+      } else {
+        verifyResult.textContent = "驗證失敗";
+      }
+    } catch (err) {
+      console.error(err);
+      verifyResult.textContent = "驗證過程發生錯誤";
     }
   });
 });
