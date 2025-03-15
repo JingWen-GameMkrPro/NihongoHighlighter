@@ -181,19 +181,31 @@
         <img src="Notion-logo.svg" alt="Notion Icon">
         Notion
       </h1>
-      <p for="notionPageId">Notion Page ID：</p>
-      <input type="text" id="notionPageId" placeholder="請輸入 Notion Page ID">
-      <div id="notionTokenContainer" style="margin-top: 10px;">
-        <div id="tokenHeader">
-          <p for="notionToken">Notion Token：</p>
-          <p>
-            <input type="checkbox" id="saveTokenCheckbox">
-            保存 Token
-          </p>
-        </div>
-        <input type="text" id="notionToken" placeholder="請輸入 Notion Token">
+      <label for="notionPageId" style = "font-size: 14px;">Notion Page ID：</label>
+      <!-- 包住 Notion Page ID 輸入框與切換圖示 -->
+      <div style="position: relative; display: inline-block; width: 90%; margin-top: 5px;">
+        <input type="password" id="notionPageId" placeholder="請輸入 Notion Page ID" 
+              style="width: 100%; padding: 8px 30px 8px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 14px; color: #3C2A27; background-color: rgba(255,255,255,0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.4); box-sizing: border-box;">
+        <span id="togglePageIdVisibility" 
+              style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;">👁</span>
       </div>
+      <div id="notionTokenContainer" style="margin-top: 10px;">
+        <div id="tokenHeader" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <label for="notionToken" style="font-size: 14px; color: #FDF6F1;">Notion Token：</label>
+          <label style="font-size: 14px; color: #FDF6F1;">
+            <input type="checkbox" id="saveTokenCheckbox"> 保存 Token
+          </label>
+        </div>
+        <div style="position: relative; display: inline-block; width: 90%; margin-top: 5px;">
+          <input type="password" id="notionToken" placeholder="請輸入 Notion Token" 
+                 style="width: 100%; padding: 8px 30px 8px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 14px; color: #3C2A27; background-color: rgba(255,255,255,0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.4); box-sizing: border-box;">
+          <span id="toggleTokenVisibility" 
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;">👁</span>
+        </div>
+      </div>
+      
     </div>
+    
     <br>
     <button id="deleteStorageBtn">JSON削除</button>
   </div>

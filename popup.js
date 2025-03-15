@@ -14,7 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
         notionPageIdInput = document.getElementById("notionPageId"),
         fetchStatusEl = document.getElementById("fetchStatus"),
         notionTokenInput = document.getElementById("notionToken"),
-        saveTokenCheckbox = document.getElementById("saveTokenCheckbox");
+        saveTokenCheckbox = document.getElementById("saveTokenCheckbox"),
+        togglePageIdVisibility = document.getElementById("togglePageIdVisibility"),
+        toggleTokenVisibility = document.getElementById("toggleTokenVisibility");
 
   // 根據模式變更 popup 背景色
   function updateBackground(isHighlighting) {
@@ -328,6 +330,30 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleModeBtn.textContent = "開始高亮模式";
       updateModeDisplay("stopped");
       updateBackground(false);
+    }
+  });
+
+  // 為 Notion Page ID 輸入框加入顯示/隱藏功能
+  togglePageIdVisibility.addEventListener("click", () => {
+    const pageIdInput = document.getElementById("notionPageId");
+    if (pageIdInput.type === "password") {
+      pageIdInput.type = "text";
+      togglePageIdVisibility.textContent = "🙈"; // 切換成隱藏圖示
+    } else {
+      pageIdInput.type = "password";
+      togglePageIdVisibility.textContent = "👁"; // 切換回顯示圖示
+    }
+  });
+
+  // 為 Notion Token 輸入框加入顯示/隱藏功能
+  toggleTokenVisibility.addEventListener("click", () => {
+    const tokenInput = document.getElementById("notionToken");
+    if (tokenInput.type === "password") {
+      tokenInput.type = "text";
+      toggleTokenVisibility.textContent = "🙈";
+    } else {
+      tokenInput.type = "password";
+      toggleTokenVisibility.textContent = "👁";
     }
   });
 });
