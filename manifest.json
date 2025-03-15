@@ -20,7 +20,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sound.mp3"],
+      "resources": ["sound.mp3","*.svg"],
       "matches": ["<all_urls>"]
     }
   ],

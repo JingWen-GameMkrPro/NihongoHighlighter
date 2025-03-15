@@ -1,5 +1,7 @@
 let processTime = 0;
 let isNeedRecordTime = 0;
+let fetchTime = 0;
+
 document.addEventListener("DOMContentLoaded", () => {
   const toggleModeBtn = document.getElementById("toggleModeBtn"),
         deleteStorageBtn = document.getElementById("deleteStorageBtn"),
@@ -25,10 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateModeDisplay(mode) {
     currentModeP.textContent = "現在の状態：" + (mode === "highlighter" ? "ハイライト中" : "停止中");
-  }
-
-  function updateDataSourceDisplay(mode) {
-    currentDataSourceP.textContent = "データソース：" + mode;
   }
 
   function updateKeyCount() {
@@ -175,6 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const newData = await fetchNotionData();
     if (newData) {
       chrome.storage.local.set({ jsonData: newData }, () => {
+        fetchTime  = Date.now();
         sendHighlightMessage();
         updateKeyCount();
         updateModeDisplay("highlighter");
@@ -187,7 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   chrome.storage.local.set({ dataSource: "notion" }, () => {
     updateModeDisplay("highlighter");
-    updateDataSourceDisplay("Notion");
     updateKeyCount();
   });
 
@@ -246,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
       updateModeDisplay("stopped");
-      currentDataSourceP.textContent = "データソース：なし";
+      //currentDataSourceP.textContent = "データソース：なし";
       keyCountElement.textContent = "0";
     });
   });
@@ -260,8 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "HIGHLIGHT_FINISHED") {
       if (isNeedRecordTime) {
-        const elapsedTime = Date.now() - processTime;
-        elapsedTimeElement.textContent = "経過時間：" + Math.round(elapsedTime) + "ms";
+        //const elapsedTime = Date.now() - processTime;
+        const fetch = fetchTime - processTime;
+        const highlight = Date.now() - fetchTime;
+        elapsedTimeElement.textContent = "経過時間：Fetch: " + (fetch / 1000).toFixed(2) + "秒, Tidy: " + (highlight / 1000).toFixed(2) + "秒";
+        //fetchTime = 0;
+        //processTime = 0;
         isNeedRecordTime = 0;
       }
     }

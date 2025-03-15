@@ -138,11 +138,29 @@
       font-size: 14px;
       color: #FDF6F1;
     }
+    #currentDataSource img {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      vertical-align: middle;
+      margin-right: 8px;
+      margin-bottom: 2px;
+      object-fit: contain; /* 保持圖片比例 */
+    }
+    #title img {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      vertical-align: middle;
+      margin-right: 8px;
+      margin-bottom: 2px;
+      object-fit: contain; /* 保持圖片比例 */
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>単語ハイライト</h1>
+    <h1 id = "title"><img src="icon.svg" alt="Icon">単語ハイライト</h1>
 
     <div class="block-area">
       <h1 id="currentMode">現在の状態：停止中</h1>
@@ -160,8 +178,8 @@
     </div>
     <div id="notionCredentials" class="block-area">
       <h1 id="currentDataSource">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg" alt="Notion Icon">
-        NOTION
+        <img src="Notion-logo.svg" alt="Notion Icon">
+        Notion
       </h1>
       <p for="notionPageId">Notion Page ID：</p>
       <input type="text" id="notionPageId" placeholder="請輸入 Notion Page ID">
