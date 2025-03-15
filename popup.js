@@ -338,7 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const pageIdInput = document.getElementById("notionPageId");
     if (pageIdInput.type === "password") {
       pageIdInput.type = "text";
-      togglePageIdVisibility.textContent = "🙈"; // 切換成隱藏圖示
+      togglePageIdVisibility.textContent = "👁"; // 切換成隱藏圖示
     } else {
       pageIdInput.type = "password";
       togglePageIdVisibility.textContent = "👁"; // 切換回顯示圖示
@@ -350,7 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tokenInput = document.getElementById("notionToken");
     if (tokenInput.type === "password") {
       tokenInput.type = "text";
-      toggleTokenVisibility.textContent = "🙈";
+      toggleTokenVisibility.textContent = "👁";
     } else {
       tokenInput.type = "password";
       toggleTokenVisibility.textContent = "👁";
