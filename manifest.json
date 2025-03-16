@@ -15,12 +15,12 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["contentScript.js"]      
+      "js": ["contentScript.js"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sound.mp3","*.svg"],
+      "resources": ["sound.mp3", "*.svg"],
       "matches": ["<all_urls>"]
     }
   ],
@@ -30,6 +30,6 @@
     "128": "icon.png"
   },
   "host_permissions": [
-  "https://api.github.com/*"
+    "https://api.github.com/*"
   ]
 }

@@ -43,33 +43,23 @@
       margin-bottom: 16px;
       color: #FDF6F1;
     }
-    #currentDataSource {
+    #currentDataSource, #currentMode, #fetchStatus {
       font-size: 16px;
       text-align: center;
       color: #FDF6F1;
-      margin-top: 5px;
-      margin-bottom: 5px;
+      margin: 5px 0;
     }
-    #currentMode {
-      font-size: 16px;
-      text-align: center;
-      color: #FDF6F1;
-      margin-top: 5px;
-      margin-bottom: 5x;
-    }
-
-    #fetchStatus {
-      font-size: 16px;
-      text-align: center;
-      color: #FDF6F1;
-      margin-top: 5px;
-      margin-bottom: 5x;
-    }
-    #currentDataSource img {
+    #currentDataSource img, #title img {
       width: 24px;
       height: 24px;
       vertical-align: middle;
       margin-right: 8px;
+      margin-bottom: 2px;
+      object-fit: contain;
+    }
+    #title img {
+      width: 28px;
+      height: 28px;
     }
     .btn-group {
       display: flex;
@@ -97,7 +87,6 @@
     button:active {
       transform: scale(0.98);
     }
-
     .block-area {
       margin-top: 20px;
       padding: 15px;
@@ -113,18 +102,34 @@
       display: block;
       color: #FDF6F1;
     }
-    #notionCredentials input[type="text"] {
-      width: 90%;
-      padding: 8px;
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 8px;
+    #notionCredentials input[type="text"],
+    #notionCredentials input[type="password"] {
       font-size: 14px;
       color: #3C2A27;
       background-color: rgba(255,255,255, 0.7);
-      margin: 0 auto;
-      display: block;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
       box-sizing: border-box;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+    }
+    .input-container {
+      position: relative;
+      display: inline-block;
+      width: 90%;
+      margin-top: 5px;
+    }
+    .styled-input {
+      width: 100%;
+      padding: 8px 30px 8px 8px;
+    }
+    .toggle-visibility {
+      position: absolute;
+      right: 10px;
+      top: 45%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #151718;
+      font-size: 15px;
     }
     #tokenHeader {
       display: flex;
@@ -134,46 +139,27 @@
     }
     #tokenHeader label {
       margin: 0;
-      display: inline-block;
       font-size: 14px;
       color: #FDF6F1;
-    }
-    #currentDataSource img {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      vertical-align: middle;
-      margin-right: 8px;
-      margin-bottom: 2px;
-      object-fit: contain; /* 保持圖片比例 */
-    }
-    #title img {
-      display: inline-block;
-      width: 28px;
-      height: 28px;
-      vertical-align: middle;
-      margin-right: 8px;
-      margin-bottom: 2px;
-      object-fit: contain; /* 保持圖片比例 */
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 id = "title"><img src="icon.svg" alt="Icon">単語ハイライト</h1>
+    <h1 id="title"><img src="icon.svg" alt="Icon">単語ハイライト</h1>
 
     <div class="block-area">
       <h1 id="currentMode">現在の状態：停止中</h1>
       <label for="highlightColor">ハイライト色：</label>
       <input type="color" id="highlightColor">
-      <br>
-      <br>
+      <br><br>
       <button id="toggleModeBtn">開始高亮模式</button>
     </div>
     <div class="block-area">
       <h1 id="fetchStatus">データステータス：無</h1>
       <p id="elapsedTime">経過時間：0ms</p>
       <p id="keyCount">JSONキー数：0</p>
+      <p id="problemBlock">Wrong Block：0</p>
       <button id="refreshBtn">刷新</button>
     </div>
     <div id="notionCredentials" class="block-area">
@@ -181,33 +167,27 @@
         <img src="Notion-logo.svg" alt="Notion Icon">
         Notion
       </h1>
-      <label for="notionPageId" style = "font-size: 14px;">Notion Page ID：</label>
-      <!-- 包住 Notion Page ID 輸入框與切換圖示 -->
-      <div style="position: relative; display: inline-block; width: 90%; margin-top: 5px;">
-        <input type="password" id="notionPageId" placeholder="請輸入 Notion Page ID" 
-              style="width: 100%; padding: 8px 30px 8px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 14px; color: #3C2A27; background-color: rgba(255,255,255,0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.4); box-sizing: border-box;">
-        <span id="togglePageIdVisibility" 
-              style="position: absolute; right: 10px; top: 45%; transform: translateY(-50%); cursor: pointer; color: #151718; font-size: 15px;">👁</span>
+      <label for="notionPageId" style="font-size: 14px;">Notion Page ID：</label>
+      <div class="input-container">
+        <input type="password" id="notionPageId" placeholder="請輸入 Notion Page ID" class="styled-input">
+        <span id="togglePageIdVisibility" class="toggle-visibility">👁</span>
       </div>
       <div id="notionTokenContainer" style="margin-top: 10px;">
-        <div id="tokenHeader" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <div id="tokenHeader">
           <label for="notionToken" style="font-size: 14px; color: #FDF6F1;">Notion Token：</label>
           <label style="font-size: 14px; color: #FDF6F1;">
             <input type="checkbox" id="saveTokenCheckbox"> 保存 Token
           </label>
         </div>
-        <div style="position: relative; display: inline-block; width: 90%; margin-top: 5px;">
-          <input type="password" id="notionToken" placeholder="請輸入 Notion Token" 
-                 style="width: 100%; padding: 8px 30px 8px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 14px; color: #3C2A27; background-color: rgba(255,255,255,0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.4); box-sizing: border-box;">
-          <span id="toggleTokenVisibility" 
-                style="position: absolute; right: 10px; top: 45%; transform: translateY(-50%); cursor: pointer; color: #151718; font-size: 15px;">👁</span>
+        <div class="input-container">
+          <input type="password" id="notionToken" placeholder="請輸入 Notion Token" class="styled-input">
+          <span id="toggleTokenVisibility" class="toggle-visibility">👁</span>
         </div>
       </div>
-      
     </div>
-    
     <br>
     <button id="deleteStorageBtn">JSON削除</button>
+
   </div>
   <script src="popup.js"></script>
   <script src="config.js"></script>

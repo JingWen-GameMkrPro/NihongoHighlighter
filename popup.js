@@ -1,7 +1,8 @@
 let processTime = 0;
 let isNeedRecordTime = 0;
 let fetchTime = 0;
-
+let log = "";
+let logCount = 0;
 document.addEventListener("DOMContentLoaded", () => {
   const toggleModeBtn = document.getElementById("toggleModeBtn"),
         deleteStorageBtn = document.getElementById("deleteStorageBtn"),
@@ -16,15 +17,13 @@ document.addEventListener("DOMContentLoaded", () => {
         notionTokenInput = document.getElementById("notionToken"),
         saveTokenCheckbox = document.getElementById("saveTokenCheckbox"),
         togglePageIdVisibility = document.getElementById("togglePageIdVisibility"),
-        toggleTokenVisibility = document.getElementById("toggleTokenVisibility");
+        toggleTokenVisibility = document.getElementById("toggleTokenVisibility"),
+        problemBlock = document.getElementById("problemBlock");
 
-  // 根據模式變更 popup 背景色
   function updateBackground(isHighlighting) {
-    if (isHighlighting) {
-      document.body.style.background = "linear-gradient(120deg, #4A251B 0%, #7F4339 100%)";
-    } else {
-      document.body.style.background = "linear-gradient(120deg,rgb(61, 61, 61) 0%,rgb(0, 0, 0) 100%)";
-    }
+    document.body.style.background = isHighlighting
+      ? "linear-gradient(120deg, #4A251B 0%, #7F4339 100%)"
+      : "linear-gradient(120deg, rgb(61, 61, 61) 0%, rgb(0, 0, 0) 100%)";
   }
 
   function updateModeDisplay(mode) {
@@ -53,9 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (originalJsonData.hasOwnProperty(refKey)) {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
-                  const cleanDesc = refObj.description
-                    .replace(/\&\{[^}]+\}/g, "")
-                    .replace(/\~\{[^}]+\}/g, "");
+                  const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
@@ -65,9 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (originalJsonData.hasOwnProperty(refKey)) {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
-                  const cleanDesc = refObj.description
-                    .replace(/\&\{[^}]+\}/g, "")
-                    .replace(/\~\{[^}]+\}/g, "");
+                  const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
                   return `__PLACEHOLDER_RED__【似】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
@@ -88,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchAllBlocks(pageId, notionToken) {
     let allBlocks = [];
     let hasMore = true;
-    let startCursor = undefined;
+    let startCursor;
     while (hasMore) {
       let url = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
       if (startCursor) {
@@ -117,11 +112,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
     const notionToken = notionTokenInput.value.trim();
-    fetchStatusEl.textContent = "データステータス：" + "処理中...";
+    fetchStatusEl.textContent = "データステータス：処理中...";
     try {
       const allBlocks = await fetchAllBlocks(storedPageId, notionToken);
       let notionJson = {};
-      if (allBlocks && Array.isArray(allBlocks)) {
+      log = "";
+      logCount = 0;
+      if (Array.isArray(allBlocks)) {
         allBlocks.forEach(block => {
           if (
             block.type === "paragraph" &&
@@ -131,24 +128,34 @@ document.addEventListener("DOMContentLoaded", () => {
           ) {
             const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
             const parts = textContent.split('/');
-            if (parts.length >= 3) {
+            if (parts.length == 3) {
               const key = parts[0].trim();
               const subName = parts[1].trim();
               const description = parts.slice(2).join('/').trim();
-              notionJson[key] = {
-                "sub-name": subName,
-                "description": description
-              };
+              if(notionJson[key])
+              {
+                notionJson[key].description += "\n" + subName + "\n" + description;
+              }
+              else
+              {
+                notionJson[key] = { "sub-name": subName, "description": description };
+              }
+            }
+            else
+            {
+              log = log + parts[0].trim()+"...\n";
+              logCount++;
             }
           }
         });
       }
+      problemBlock.textContent = "Wrong Block：" + logCount;
       notionJson = substitutePlaceholders(notionJson);
-      fetchStatusEl.textContent = "データステータス：" + "完成";
+      fetchStatusEl.textContent = "データステータス：完成";
       return notionJson;
     } catch (error) {
       console.error("Error fetching Notion data:", error);
-      fetchStatusEl.textContent = "データステータス：" + "失敗";
+      fetchStatusEl.textContent = "データステータス：失敗";
       return null;
     }
   }
@@ -175,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const newData = await fetchNotionData();
     if (newData) {
       chrome.storage.local.set({ jsonData: newData }, () => {
-        fetchTime  = Date.now();
+        fetchTime = Date.now();
         sendHighlightMessage();
         updateKeyCount();
         updateModeDisplay("highlighter");
@@ -212,9 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   highlightColorInput.addEventListener("change", (e) => {
-    chrome.storage.local.set({ highlightColor: e.target.value }, () => {
-      sendHighlightMessage();
-    });
+    chrome.storage.local.set({ highlightColor: e.target.value }, sendHighlightMessage);
   });
 
   toggleModeBtn.addEventListener("click", () => {
@@ -246,7 +251,6 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
       updateModeDisplay("stopped");
-      //currentDataSourceP.textContent = "データソース：なし";
       keyCountElement.textContent = "0";
     });
   });
@@ -258,16 +262,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "HIGHLIGHT_FINISHED") {
-      if (isNeedRecordTime) {
-        //const elapsedTime = Date.now() - processTime;
-        const fetch = fetchTime - processTime;
-        const highlight = Date.now() - fetchTime;
-        elapsedTimeElement.textContent = "経過時間：Fetch: " + (fetch / 1000).toFixed(2) + "秒, Tidy: " + (highlight / 1000).toFixed(2) + "秒";
-        //fetchTime = 0;
-        //processTime = 0;
-        isNeedRecordTime = 0;
-      }
+    if (message.action === "HIGHLIGHT_FINISHED" && isNeedRecordTime) {
+      const fetchDuration = fetchTime - processTime;
+      const highlightDuration = Date.now() - fetchTime;
+      elapsedTimeElement.textContent =
+        "経過時間：Fetch: " + (fetchDuration / 1000).toFixed(2) + "秒, Tidy: " + (highlightDuration / 1000).toFixed(2) + "秒";
+      isNeedRecordTime = 0;
     }
     sendResponse();
   });
@@ -280,12 +280,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  window.addEventListener("popstate", () => {
-    sendHighlightMessage();
-  });
-  window.addEventListener("hashchange", () => {
-    sendHighlightMessage();
-  });
+  window.addEventListener("popstate", sendHighlightMessage);
+  window.addEventListener("hashchange", sendHighlightMessage);
 
   (function(history) {
     const pushState = history.pushState;
@@ -320,7 +316,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 初始化背景顏色，根據是否有 JSON 數據決定模式
   chrome.storage.local.get("jsonData", (result) => {
     if (result.jsonData) {
       toggleModeBtn.textContent = "停止高亮模式";
@@ -333,27 +328,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 為 Notion Page ID 輸入框加入顯示/隱藏功能
   togglePageIdVisibility.addEventListener("click", () => {
     const pageIdInput = document.getElementById("notionPageId");
-    if (pageIdInput.type === "password") {
-      pageIdInput.type = "text";
-      togglePageIdVisibility.textContent = "👁"; // 切換成隱藏圖示
-    } else {
-      pageIdInput.type = "password";
-      togglePageIdVisibility.textContent = "👁"; // 切換回顯示圖示
-    }
+    pageIdInput.type = pageIdInput.type === "password" ? "text" : "password";
+    togglePageIdVisibility.textContent = "👁";
   });
 
-  // 為 Notion Token 輸入框加入顯示/隱藏功能
   toggleTokenVisibility.addEventListener("click", () => {
     const tokenInput = document.getElementById("notionToken");
-    if (tokenInput.type === "password") {
-      tokenInput.type = "text";
-      toggleTokenVisibility.textContent = "👁";
-    } else {
-      tokenInput.type = "password";
-      toggleTokenVisibility.textContent = "👁";
-    }
+    tokenInput.type = tokenInput.type === "password" ? "text" : "password";
+    toggleTokenVisibility.textContent = "👁";
   });
+
+  // 在 popup.js 的 DOMContentLoaded 事件內新增以下程式碼
+  
+  if (problemBlock) {
+    problemBlock.addEventListener("mouseover", (e) => {
+      let tooltip = document.createElement("div");
+      tooltip.id = "problemTooltip";
+      tooltip.style.position = "absolute";
+      tooltip.style.padding = "8px 12px";
+      tooltip.style.background = "rgba(0, 0, 0, 0.8)";
+      tooltip.style.color = "#fff";
+      tooltip.style.borderRadius = "4px";
+      tooltip.style.fontSize = "14px";
+      tooltip.style.zIndex = "10000";
+      tooltip.innerText = log;
+      document.body.appendChild(tooltip);
+      const rect = problemBlock.getBoundingClientRect();
+      // 等待瀏覽器渲染 tooltip 後再計算寬度以置中
+      const tooltipWidth = tooltip.offsetWidth;
+      tooltip.style.left = (rect.left + (rect.width - tooltipWidth) / 2) + "px";
+      tooltip.style.top = (rect.bottom + 5) + "px";
+    });
+    problemBlock.addEventListener("mouseout", () => {
+      const tooltip = document.getElementById("problemTooltip");
+      if (tooltip) tooltip.remove();
+    });
+  }
+
 });
