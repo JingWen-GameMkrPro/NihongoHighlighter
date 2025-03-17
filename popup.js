@@ -1,7 +1,7 @@
 let processTime = 0;
 let isNeedRecordTime = 0;
 let fetchTime = 0;
-let log = "";
+let log = "No problem in your notion blocks";
 let logCount = 0;
 document.addEventListener("DOMContentLoaded", () => {
   const toggleModeBtn = document.getElementById("toggleModeBtn"),
@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const allBlocks = await fetchAllBlocks(storedPageId, notionToken);
       let notionJson = {};
-      log = "";
+      log = "No problem in your notion blocks";
       logCount = 0;
       if (Array.isArray(allBlocks)) {
         allBlocks.forEach(block => {
@@ -143,11 +143,19 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             else
             {
+              if(logCount==0)
+              {
+                log = "Some problem in these blocks：\n";
+              }
               log = log + parts[0].trim()+"...\n";
               logCount++;
             }
           }
         });
+      }
+      if(logCount>0)
+      {
+        log+="\nPlease check your notion blocks！"
       }
       problemBlock.textContent = "Wrong Block：" + logCount;
       notionJson = substitutePlaceholders(notionJson);
@@ -266,7 +274,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const fetchDuration = fetchTime - processTime;
       const highlightDuration = Date.now() - fetchTime;
       elapsedTimeElement.textContent =
-        "経過時間：Fetch: " + (fetchDuration / 1000).toFixed(2) + "秒, Tidy: " + (highlightDuration / 1000).toFixed(2) + "秒";
+        "Process Time："(fetchDuration + highlightDuration / 1000).toFixed(2) + "s";
       isNeedRecordTime = 0;
     }
     sendResponse();
@@ -356,7 +364,6 @@ document.addEventListener("DOMContentLoaded", () => {
       tooltip.innerText = log;
       document.body.appendChild(tooltip);
       const rect = problemBlock.getBoundingClientRect();
-      // 等待瀏覽器渲染 tooltip 後再計算寬度以置中
       const tooltipWidth = tooltip.offsetWidth;
       tooltip.style.left = (rect.left + (rect.width - tooltipWidth) / 2) + "px";
       tooltip.style.top = (rect.bottom + 5) + "px";

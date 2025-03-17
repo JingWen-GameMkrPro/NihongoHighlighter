@@ -96,6 +96,15 @@
       text-align: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
+    .small-block-area {
+      margin-top: 1px;
+      padding: 1px;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      background-color: rgba(255,255,255,0.1);
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
     #notionCredentials label {
       font-size: 16px;
       margin-bottom: 5px;
@@ -142,12 +151,24 @@
       font-size: 14px;
       color: #FDF6F1;
     }
+    #tutorial {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #FDF6F1;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1 id="title"><img src="icon.svg" alt="Icon">単語ハイライト</h1>
-
+    <div class="small-block-area">
+    <p id="tutorial">
+      <img src="info.svg" style="width:18px; margin-right: 5px; height:18px;" alt="Info">
+      <a href="https://rocky-allspice-628.notion.site/1b926f3d13b8802d8317c44ad2c72ab4?pvs=4" target="_blank" style="text-decoration: underline; color: inherit;">Information</a>
+    </p>
+    </div>
     <div class="block-area">
       <h1 id="currentMode">現在の状態：停止中</h1>
       <label for="highlightColor">ハイライト色：</label>
@@ -167,17 +188,17 @@
         <img src="Notion-logo.svg" alt="Notion Icon">
         Notion
       </h1>
-      <label for="notionPageId" style="font-size: 14px;">Notion Page ID：</label>
+      <p for = "notionPageId">Notion Page ID：</p>
       <div class="input-container">
         <input type="password" id="notionPageId" placeholder="請輸入 Notion Page ID" class="styled-input">
         <span id="togglePageIdVisibility" class="toggle-visibility">👁</span>
       </div>
       <div id="notionTokenContainer" style="margin-top: 10px;">
         <div id="tokenHeader">
-          <label for="notionToken" style="font-size: 14px; color: #FDF6F1;">Notion Token：</label>
-          <label style="font-size: 14px; color: #FDF6F1;">
+          <p for="notionToken" style=" color: #FDF6F1;">Notion Token：</p>
+          <p style=" color: #FDF6F1;">
             <input type="checkbox" id="saveTokenCheckbox"> 保存 Token
-          </label>
+          </p>
         </div>
         <div class="input-container">
           <input type="password" id="notionToken" placeholder="請輸入 Notion Token" class="styled-input">
@@ -187,7 +208,9 @@
     </div>
     <br>
     <button id="deleteStorageBtn">JSON削除</button>
-
+    
+    
+    
   </div>
   <script src="popup.js"></script>
   <script src="config.js"></script>
