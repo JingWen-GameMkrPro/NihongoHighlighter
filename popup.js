@@ -134,7 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
               const description = parts.slice(2).join('/').trim();
               if(notionJson[key])
               {
-                notionJson[key].description += "\n" + subName + "\n" + description;
+                notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
+                notionJson[key].description += subName + "\n" + description;
               }
               else
               {
@@ -145,17 +146,14 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               if(logCount==0)
               {
-                log = "Some problem in these blocks：\n";
+                log = "Please check your notion blocks！";
+                log+= `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
               }
               log = log + parts[0].trim()+"...\n";
               logCount++;
             }
           }
         });
-      }
-      if(logCount>0)
-      {
-        log+="\nPlease check your notion blocks！"
       }
       problemBlock.textContent = "Wrong Block：" + logCount;
       notionJson = substitutePlaceholders(notionJson);
@@ -361,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tooltip.style.borderRadius = "4px";
       tooltip.style.fontSize = "14px";
       tooltip.style.zIndex = "10000";
-      tooltip.innerText = log;
+      tooltip.innerHTML = log;
       document.body.appendChild(tooltip);
       const rect = problemBlock.getBoundingClientRect();
       const tooltipWidth = tooltip.offsetWidth;
