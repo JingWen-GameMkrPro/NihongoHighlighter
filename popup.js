@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateModeDisplay(mode) {
-    currentModeP.textContent = "現在の状態：" + (mode === "highlighter" ? "ハイライト中" : "停止中");
+    currentModeP.textContent = "Current Mode：" + (mode === "highlighter" ? "Highlighting" : "Stop");
   }
 
   function updateKeyCount() {
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (result.jsonData && typeof result.jsonData === "object") {
         keys = Object.keys(result.jsonData);
       }
-      keyCountElement.textContent = keys.length > 0 ? "JSONキー数：" + keys.length : "0";
+      keyCountElement.textContent = keys.length > 0 ? "Block Number：" + keys.length : "0";
     });
   }
 
@@ -53,7 +53,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  return `__PLACEHOLDER_GREEN__【参】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
+                  const cleanSubName = refObj["sub-name"];
+                  if(cleanSubName)
+                  {
+                    return `__PLACEHOLDER_GREEN__【※】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
+                  }
+                  else
+                  {
+                    return `__PLACEHOLDER_GREEN__【※】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
+                  }
                 }
               }
               return refKey;
@@ -63,15 +71,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  return `__PLACEHOLDER_RED__【似】：　${refKey}: ${cleanDesc}__ENDPLACEHOLDER__`;
+                  const cleanSubName = refObj["sub-name"];
+                  if(cleanSubName)
+                  {
+                    return `__PLACEHOLDER_RED__【！】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
+                  }
+                  else
+                  {
+                    return `__PLACEHOLDER_RED__【！】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
+                  }
                 }
               }
               return refKey;
             });
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
-              return `__PLACEHOLDER_BLUE__【例】：　${content}__ENDPLACEHOLDER__`;
+              return `__PLACEHOLDER_BLUE__【e.g.】:${content}__ENDPLACEHOLDER__`;
             });
-            text = text.replace(/\\n/g, "\n");
+            //text = text.replace(/\\n/g, "\n");
             obj[prop] = text;
           }
         });
@@ -112,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
     const notionToken = notionTokenInput.value.trim();
-    fetchStatusEl.textContent = "データステータス：処理中...";
+    fetchStatusEl.textContent = "Data Status：Processing...";
     try {
       const allBlocks = await fetchAllBlocks(storedPageId, notionToken);
       let notionJson = {};
@@ -149,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 log = "Please check your notion blocks！";
                 log+= `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
               }
-              log = log + parts[0].trim()+"...\n";
+              log = log + parts[0].trim()+"...<br>";
               logCount++;
             }
           }
@@ -157,11 +173,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       problemBlock.textContent = "Wrong Block：" + logCount;
       notionJson = substitutePlaceholders(notionJson);
-      fetchStatusEl.textContent = "データステータス：完成";
+      fetchStatusEl.textContent = "Data Status：Finish";
       return notionJson;
     } catch (error) {
       console.error("Error fetching Notion data:", error);
-      fetchStatusEl.textContent = "データステータス：失敗";
+      fetchStatusEl.textContent = "Data Status：Fail";
       return null;
     }
   }
@@ -229,15 +245,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   toggleModeBtn.addEventListener("click", () => {
-    if (toggleModeBtn.textContent === "開始高亮模式") {
+    if (toggleModeBtn.textContent === "Highlight！") {
       chrome.storage.local.get("jsonData", (result) => {
         if (result.jsonData) {
           sendHighlightMessage();
           updateModeDisplay("highlighter");
-          toggleModeBtn.textContent = "停止高亮模式";
+          toggleModeBtn.textContent = "Stop";
           updateBackground(true);
         } else {
-          alert("JSONデータがありません。先に Notion から読み込んでください。");
+          alert("No data. Please click refresh button to load it from Notion.");
         }
       });
     } else {
@@ -245,14 +261,14 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
       updateModeDisplay("stopped");
-      toggleModeBtn.textContent = "開始高亮模式";
+      toggleModeBtn.textContent = "Highlight！";
       updateBackground(false);
     }
   });
 
   deleteStorageBtn.addEventListener("click", () => {
     chrome.storage.local.remove(["jsonData", "dataSource"], () => {
-      alert("JSONデータを削除しました");
+      alert("Data was deleted");
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
@@ -324,11 +340,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   chrome.storage.local.get("jsonData", (result) => {
     if (result.jsonData) {
-      toggleModeBtn.textContent = "停止高亮模式";
+      toggleModeBtn.textContent = "Stop";
       updateModeDisplay("highlighter");
       updateBackground(true);
     } else {
-      toggleModeBtn.textContent = "開始高亮模式";
+      toggleModeBtn.textContent = "Highlight！";
       updateModeDisplay("stopped");
       updateBackground(false);
     }

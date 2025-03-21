@@ -2,7 +2,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=400, initial-scale=1">
-  <title>単語ハイライト</title>
+  <title>Knowtion</title>
   <style>
     html, body {
       margin: 0;
@@ -162,7 +162,7 @@
 </head>
 <body>
   <div class="container">
-    <h1 id="title"><img src="icon.svg" alt="Icon">単語ハイライト</h1>
+    <h1 id="title"><img src="icon.svg" alt="Icon">Knowtion</h1>
     <div class="small-block-area">
     <p id="tutorial">
       <img src="info.svg" style="width:18px; margin-right: 5px; height:18px;" alt="Info">
@@ -170,18 +170,18 @@
     </p>
     </div>
     <div class="block-area">
-      <h1 id="currentMode">現在の状態：停止中</h1>
-      <label for="highlightColor">ハイライト色：</label>
+      <h1 id="currentMode">Current Mode：Stop</h1>
+      <label for="highlightColor">Color：</label>
       <input type="color" id="highlightColor">
       <br><br>
-      <button id="toggleModeBtn">開始高亮模式</button>
+      <button id="toggleModeBtn">Highlight！</button>
     </div>
     <div class="block-area">
-      <h1 id="fetchStatus">データステータス：無</h1>
-      <p id="elapsedTime">経過時間：0ms</p>
-      <p id="keyCount">JSONキー数：0</p>
+      <h1 id="fetchStatus">Data Status：None</h1>
+      <p id="elapsedTime">Runtime：0ms</p>
+      <p id="keyCount">Block Number：0</p>
       <p id="problemBlock">Wrong Block：0</p>
-      <button id="refreshBtn">刷新</button>
+      <button id="refreshBtn">Refresh</button>
     </div>
     <div id="notionCredentials" class="block-area">
       <h1 id="currentDataSource">
@@ -190,24 +190,24 @@
       </h1>
       <p for = "notionPageId">Notion Page ID：</p>
       <div class="input-container">
-        <input type="password" id="notionPageId" placeholder="請輸入 Notion Page ID" class="styled-input">
+        <input type="password" id="notionPageId" placeholder="Enter Notion Page ID" class="styled-input">
         <span id="togglePageIdVisibility" class="toggle-visibility">👁</span>
       </div>
       <div id="notionTokenContainer" style="margin-top: 10px;">
         <div id="tokenHeader">
           <p for="notionToken" style=" color: #FDF6F1;">Notion Token：</p>
           <p style=" color: #FDF6F1;">
-            <input type="checkbox" id="saveTokenCheckbox"> 保存 Token
+            <input type="checkbox" id="saveTokenCheckbox"> Save Token
           </p>
         </div>
         <div class="input-container">
-          <input type="password" id="notionToken" placeholder="請輸入 Notion Token" class="styled-input">
+          <input type="password" id="notionToken" placeholder="Enter Notion Token" class="styled-input">
           <span id="toggleTokenVisibility" class="toggle-visibility">👁</span>
         </div>
       </div>
     </div>
     <br>
-    <button id="deleteStorageBtn">JSON削除</button>
+    <button id="deleteStorageBtn">Delete Data</button>
     
     
     
