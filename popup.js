@@ -3,12 +3,12 @@ let isNeedRecordTime = 0;
 let fetchTime = 0;
 let log = "No problem in your notion blocks";
 let logCount = 0;
+
 document.addEventListener("DOMContentLoaded", () => {
   const toggleModeBtn = document.getElementById("toggleModeBtn"),
         deleteStorageBtn = document.getElementById("deleteStorageBtn"),
         refreshBtn = document.getElementById("refreshBtn"),
         currentModeP = document.getElementById("currentMode"),
-        currentDataSourceP = document.getElementById("currentDataSource"),
         keyCountElement = document.getElementById("keyCount"),
         elapsedTimeElement = document.getElementById("elapsedTime"),
         highlightColorInput = document.getElementById("highlightColor"),
@@ -54,12 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
                   const cleanSubName = refObj["sub-name"];
-                  if(cleanSubName)
-                  {
+                  if (cleanSubName) {
                     return `__PLACEHOLDER_GREEN__【※】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
-                  }
-                  else
-                  {
+                  } else {
                     return `__PLACEHOLDER_GREEN__【※】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
                   }
                 }
@@ -72,12 +69,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
                   const cleanSubName = refObj["sub-name"];
-                  if(cleanSubName)
-                  {
+                  if (cleanSubName) {
                     return `__PLACEHOLDER_RED__【！】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
-                  }
-                  else
-                  {
+                  } else {
                     return `__PLACEHOLDER_RED__【！】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
                   }
                 }
@@ -87,7 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
               return `__PLACEHOLDER_BLUE__【e.g.】:${content}__ENDPLACEHOLDER__`;
             });
-            //text = text.replace(/\\n/g, "\n");
             obj[prop] = text;
           }
         });
@@ -100,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let allBlocks = [];
     let hasMore = true;
     let startCursor;
+
     while (hasMore) {
       let url = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
       if (startCursor) {
@@ -129,11 +123,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const notionToken = notionTokenInput.value.trim();
     fetchStatusEl.textContent = "Data Status：Processing...";
+
     try {
       const allBlocks = await fetchAllBlocks(storedPageId, notionToken);
       let notionJson = {};
       log = "No problem in your notion blocks";
       logCount = 0;
+
       if (Array.isArray(allBlocks)) {
         allBlocks.forEach(block => {
           if (
@@ -144,26 +140,20 @@ document.addEventListener("DOMContentLoaded", () => {
           ) {
             const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
             const parts = textContent.split('/');
-            if (parts.length == 3) {
+            if (parts.length === 3) {
               const key = parts[0].trim();
               const subName = parts[1].trim();
               const description = parts.slice(2).join('/').trim();
-              if(notionJson[key])
-              {
+              if(notionJson[key]) {
                 notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
                 notionJson[key].description += subName + "\n" + description;
-              }
-              else
-              {
+              } else {
                 notionJson[key] = { "sub-name": subName, "description": description };
               }
-            }
-            else
-            {
-              if(logCount==0)
-              {
+            } else {
+              if(logCount === 0) {
                 log = "Please check your notion blocks！";
-                log+= `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
+                log+= `<div style=\"border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;\"></div>`;
               }
               log = log + parts[0].trim()+"...<br>";
               logCount++;
@@ -171,6 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
       }
+
       problemBlock.textContent = "Wrong Block：" + logCount;
       notionJson = substitutePlaceholders(notionJson);
       fetchStatusEl.textContent = "Data Status：Finish";
@@ -215,10 +206,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  chrome.storage.local.set({ dataSource: "notion" }, () => {
-    updateModeDisplay("highlighter");
-    updateKeyCount();
-  });
+  // 預設就嘗試載入並顯示
+  updateModeDisplay("highlighter");
+  updateKeyCount();
 
   chrome.storage.local.get(["highlightColor", "notionPageId"], (res) => {
     if (res.highlightColor) {
@@ -267,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   deleteStorageBtn.addEventListener("click", () => {
-    chrome.storage.local.remove(["jsonData", "dataSource"], () => {
+    chrome.storage.local.remove(["jsonData"], () => {
       alert("Data was deleted");
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
@@ -287,8 +277,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (message.action === "HIGHLIGHT_FINISHED" && isNeedRecordTime) {
       const fetchDuration = fetchTime - processTime;
       const highlightDuration = Date.now() - fetchTime;
-      elapsedTimeElement.textContent =
-        "Process Time："(fetchDuration + highlightDuration / 1000).toFixed(2) + "s";
+      const totalSec = (fetchDuration + highlightDuration) / 1000;
+      elapsedTimeElement.textContent = "Process Time：" + totalSec.toFixed(2) + "s";
       isNeedRecordTime = 0;
     }
     sendResponse();
@@ -362,8 +352,6 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleTokenVisibility.textContent = "👁";
   });
 
-  // 在 popup.js 的 DOMContentLoaded 事件內新增以下程式碼
-  
   if (problemBlock) {
     problemBlock.addEventListener("mouseover", (e) => {
       let tooltip = document.createElement("div");
@@ -382,10 +370,10 @@ document.addEventListener("DOMContentLoaded", () => {
       tooltip.style.left = (rect.left + (rect.width - tooltipWidth) / 2) + "px";
       tooltip.style.top = (rect.bottom + 5) + "px";
     });
+
     problemBlock.addEventListener("mouseout", () => {
       const tooltip = document.getElementById("problemTooltip");
       if (tooltip) tooltip.remove();
     });
   }
-
 });

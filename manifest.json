@@ -15,7 +15,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["contentScript.js"]      
+      "js": ["contentScript.js"]
     }
   ],
   "web_accessible_resources": [
@@ -28,8 +28,5 @@
     "16": "icon.png",
     "48": "icon.png",
     "128": "icon.png"
-  },
-  "host_permissions": [
-  "https://api.github.com/*"
-  ]
+  }
 }
