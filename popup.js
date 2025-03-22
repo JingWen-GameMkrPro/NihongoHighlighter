@@ -55,9 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
                   const cleanSubName = refObj["sub-name"];
                   if (cleanSubName) {
-                    return `__PLACEHOLDER_GREEN__【※】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
+                    return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
                   } else {
-                    return `__PLACEHOLDER_GREEN__【※】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
+                    return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
                   }
                 }
               }
@@ -70,16 +70,16 @@ document.addEventListener("DOMContentLoaded", () => {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
                   const cleanSubName = refObj["sub-name"];
                   if (cleanSubName) {
-                    return `__PLACEHOLDER_RED__【！】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
+                    return `__PLACEHOLDER_RED__【！】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
                   } else {
-                    return `__PLACEHOLDER_RED__【！】:${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
+                    return `__PLACEHOLDER_RED__【！】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
                   }
                 }
               }
               return refKey;
             });
             text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
-              return `__PLACEHOLDER_BLUE__【e.g.】:${content}__ENDPLACEHOLDER__`;
+              return `__PLACEHOLDER_BLUE__【e.g.】: ${content}__ENDPLACEHOLDER__`;
             });
             obj[prop] = text;
           }
