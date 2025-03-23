@@ -20,6 +20,20 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleTokenVisibility = document.getElementById("toggleTokenVisibility"),
         problemBlock = document.getElementById("problemBlock");
 
+  // 新增: 讀取並監聽使用者輸入的分隔字元
+  const splitCharInput = document.getElementById("splitChar");
+  chrome.storage.local.get(["splitChar"], (res) => {
+    if (res.splitChar) {
+      splitCharInput.value = res.splitChar;
+    } else {
+      splitCharInput.value = "/";
+      chrome.storage.local.set({ splitChar: "/" });
+    }
+  });
+  splitCharInput.addEventListener("change", (e) => {
+    chrome.storage.local.set({ splitChar: e.target.value });
+  });
+
   function updateBackground(isHighlighting) {
     document.body.style.background = isHighlighting
       ? "linear-gradient(120deg, #4A251B 0%, #7F4339 100%)"
@@ -48,12 +62,12 @@ document.addEventListener("DOMContentLoaded", () => {
         Object.keys(obj).forEach(prop => {
           let text = obj[prop];
           if (typeof text === "string") {
-            text = text.replace(/&\{([^}]+)\}/g, (match, refKey) => {
+            text = text.replace(/\&\{([^}]+)\}/g, (match, refKey) => {
               if (originalJsonData.hasOwnProperty(refKey)) {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  const cleanSubName = refObj["sub-name"];
+                  const cleanSubName = refObj["sub-name"]; // 這裡如果沒 sub-name 也沒關係
                   if (cleanSubName) {
                     return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
                   } else {
@@ -63,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return refKey;
             });
-            text = text.replace(/~\{([^}]+)\}/g, (match, refKey) => {
+            text = text.replace(/\~\{([^}]+)\}/g, (match, refKey) => {
               if (originalJsonData.hasOwnProperty(refKey)) {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
@@ -78,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               return refKey;
             });
-            text = text.replace(/@\{([^}]+)\}/g, (match, content) => {
+            text = text.replace(/\@\{([^}]+)\}/g, (match, content) => {
               return `__PLACEHOLDER_BLUE__【e.g.】: ${content}__ENDPLACEHOLDER__`;
             });
             obj[prop] = text;
@@ -116,6 +130,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function fetchNotionData() {
+    // 先取出使用者輸入的分隔字元
+    const storedSplitChar = await new Promise((resolve) => {
+      chrome.storage.local.get("splitChar", (result) => {
+        resolve(result.splitChar || "/");
+      });
+    });
+
     const storedPageId = await new Promise((resolve) => {
       chrome.storage.local.get("notionPageId", (result) => {
         resolve(result.notionPageId || config.apiPageID);
@@ -139,18 +160,23 @@ document.addEventListener("DOMContentLoaded", () => {
             block.paragraph.rich_text.length > 0
           ) {
             const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
-            const parts = textContent.split('/');
-            if (parts.length === 3) {
+            // 使用使用者輸入的分隔字元 split
+            const parts = textContent.split(storedSplitChar);
+            
+            // 只分成兩塊: key 與 description
+            if (parts.length >= 2) {
               const key = parts[0].trim();
-              const subName = parts[1].trim();
-              const description = parts.slice(2).join('/').trim();
+              const merged = parts.slice(1).join(storedSplitChar);
+              const description = merged.trim();
+
+              // 若重複的 key，就把 description 拼在一起
               if(notionJson[key]) {
-                notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
-                notionJson[key].description += subName + "\n" + description;
+                notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>` + description;
               } else {
-                notionJson[key] = { "sub-name": subName, "description": description };
+                notionJson[key] = { description: description };
               }
             } else {
+              // 假如不是兩段，就表示格式有誤
               if(logCount === 0) {
                 log = "Please check your notion blocks！";
                 log+= `<div style=\"border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;\"></div>`;
@@ -206,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 預設就嘗試載入並顯示
+  // 預設嘗試載入並顯示
   updateModeDisplay("highlighter");
   updateKeyCount();
 
@@ -377,3 +403,4 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
