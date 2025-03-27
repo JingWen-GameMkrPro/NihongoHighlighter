@@ -105,6 +105,10 @@
       text-align: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
+    #dbContainer .block-area {
+      position: relative;
+      margin-top: 15px;
+    }
     #notionCredentials label {
       font-size: 16px;
       margin-bottom: 5px;
@@ -158,6 +162,20 @@
       font-size: 14px;
       color: #FDF6F1;
     }
+    /* 針對多資料庫容器 */
+    #dbContainer input {
+      margin-top: 8px;
+      width: 80%;
+      text-align: center;
+    }
+    #dbContainer button {
+      margin-top: 10px;
+    }
+    #statusText {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #E0DDDA;
+    }
   </style>
 </head>
 <body>
@@ -169,9 +187,10 @@
         <a href="https://rocky-allspice-628.notion.site/Knowtion-1bd26f3d13b88138b109e8e48ea56701?pvs=4" target="_blank" style="text-decoration: underline; color: inherit;">Information</a>
       </p>
     </div>
+
+    <!-- 模式切換區 (Highlight or Stop)，顯示分隔字元與 Highlight 顏色 -->
     <div class="block-area">
       <h1 id="currentMode">Current Mode：Stop</h1>
-      <!-- 新增分隔字元的輸入框 -->
       <label for="splitChar">Split character：</label>
       <input type="text" id="splitChar" value="/" maxlength="1" style="width: 30px; text-align: center;">
       <br><br>
@@ -181,39 +200,16 @@
       <button id="toggleModeBtn">Highlight！</button>
     </div>
 
-    <div id="notionCredentials" class="block-area">
-      <h1 id="currentDataSource">
-        <img src="Notion-logo.svg" alt="Notion Icon">
-        Notion
-      </h1>
-      <div class="block-area">
-        <h1 id="fetchStatus">Data Status：None</h1>
-        <p id="elapsedTime">Runtime：0ms</p>
-        <p id="keyCount">Block Number：0</p>
-        <p id="problemBlock">Wrong Block：0</p>
-        <button id="refreshBtn">Refresh</button>
-      </div>
-      <p>Notion Page ID：</p>
-      <div class="input-container">
-        <input type="password" id="notionPageId" placeholder="Enter Notion Page ID" class="styled-input">
-        <span id="togglePageIdVisibility" class="toggle-visibility">👁</span>
-      </div>
-      <div id="notionTokenContainer" style="margin-top: 10px;">
-        <div id="tokenHeader">
-          <p style=" color: #FDF6F1;">Notion Token：</p>
-          <p style=" color: #FDF6F1;">
-            <input type="checkbox" id="saveTokenCheckbox"> Save Token
-          </p>
-        </div>
-        <div class="input-container">
-          <input type="password" id="notionToken" placeholder="Enter Notion Token" class="styled-input">
-          <span id="toggleTokenVisibility" class="toggle-visibility">👁</span>
-        </div>
-      </div>
+    <!-- 多資料庫管理容器 -->
+    <div id="dbContainer" class="block-area" style="margin-top: 20px;">
+      <h1 style="font-size:16px;">Manage Databases</h1>
+      <!-- 這裡透過 JS 動態渲染多組資料庫輸入塊 -->
     </div>
-    <br>
-    <button id="deleteStorageBtn">Delete Data</button>
+
+    <button id="addDbBtn" style="margin-top:10px;">＋ 新增一組資料庫</button>
+    <button id="deleteStorageBtn" style="margin-top:10px;">Delete All Data</button>
   </div>
+
   <script src="popup.js"></script>
   <script src="config.js"></script>
 </body>

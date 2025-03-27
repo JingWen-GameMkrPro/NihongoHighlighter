@@ -1,27 +1,17 @@
 let processTime = 0;
 let isNeedRecordTime = 0;
 let fetchTime = 0;
-let log = "No problem in your notion blocks";
-let logCount = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  const toggleModeBtn = document.getElementById("toggleModeBtn"),
-        deleteStorageBtn = document.getElementById("deleteStorageBtn"),
-        refreshBtn = document.getElementById("refreshBtn"),
-        currentModeP = document.getElementById("currentMode"),
-        keyCountElement = document.getElementById("keyCount"),
-        elapsedTimeElement = document.getElementById("elapsedTime"),
-        highlightColorInput = document.getElementById("highlightColor"),
-        notionPageIdInput = document.getElementById("notionPageId"),
-        fetchStatusEl = document.getElementById("fetchStatus"),
-        notionTokenInput = document.getElementById("notionToken"),
-        saveTokenCheckbox = document.getElementById("saveTokenCheckbox"),
-        togglePageIdVisibility = document.getElementById("togglePageIdVisibility"),
-        toggleTokenVisibility = document.getElementById("toggleTokenVisibility"),
-        problemBlock = document.getElementById("problemBlock");
-
-  // 新增: 讀取並監聽使用者輸入的分隔字元
+  const toggleModeBtn = document.getElementById("toggleModeBtn");
+  const deleteStorageBtn = document.getElementById("deleteStorageBtn");
+  const currentModeP = document.getElementById("currentMode");
+  const highlightColorInput = document.getElementById("highlightColor");
   const splitCharInput = document.getElementById("splitChar");
+  const dbContainer = document.getElementById("dbContainer");
+  const addDbBtn = document.getElementById("addDbBtn");
+
+  // 初次載入時，嘗試讀 splitChar
   chrome.storage.local.get(["splitChar"], (res) => {
     if (res.splitChar) {
       splitCharInput.value = res.splitChar;
@@ -30,30 +20,249 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.storage.local.set({ splitChar: "/" });
     }
   });
+
+  // 監聽使用者改動 splitChar
   splitCharInput.addEventListener("change", (e) => {
     chrome.storage.local.set({ splitChar: e.target.value });
   });
 
+  // 更新背景
   function updateBackground(isHighlighting) {
     document.body.style.background = isHighlighting
       ? "linear-gradient(120deg, #4A251B 0%, #7F4339 100%)"
       : "linear-gradient(120deg, rgb(61, 61, 61) 0%, rgb(0, 0, 0) 100%)";
   }
 
+  // 更新模式文字
   function updateModeDisplay(mode) {
     currentModeP.textContent = "Current Mode：" + (mode === "highlighter" ? "Highlighting" : "Stop");
   }
 
-  function updateKeyCount() {
-    chrome.storage.local.get("jsonData", (result) => {
-      let keys = [];
-      if (result.jsonData && typeof result.jsonData === "object") {
-        keys = Object.keys(result.jsonData);
-      }
-      keyCountElement.textContent = keys.length > 0 ? "Block Number：" + keys.length : "0";
+  // 用於將多資料庫 jsonData 合併，然後傳送給 contentScript
+  function sendHighlightMessageForAll() {
+    chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
+      const notionDatabases = res.notionDatabases || [];
+      const color = res.highlightColor || highlightColorInput.value || "#ffff33";
+
+      const combined = {};
+      notionDatabases.forEach(db => {
+        if (db.jsonData && typeof db.jsonData === "object") {
+          Object.entries(db.jsonData).forEach(([k, v]) => {
+            combined[k] = v;
+          });
+        }
+      });
+
+      const keyValues = Object.entries(combined).map(([key, value]) => ({ key, value }));
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        // 先清掉舊 highlight
+        chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
+          // 再進行新的 highlight
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: "HIGHLIGHT_BATCH",
+            keyValues: keyValues,
+            highlightColor: color
+          });
+        });
+      });
     });
   }
 
+  // 讀取所有資料庫，進行畫面渲染
+  function renderAllDbs() {
+    chrome.storage.local.get("notionDatabases", (res) => {
+      let notionDatabases = res.notionDatabases || [];
+      if (!notionDatabases.length) {
+        // 預設至少一組
+        notionDatabases = [{
+          id: Date.now().toString(),
+          pageId: "",
+          notionToken: "",
+          jsonData: {}
+        }];
+        chrome.storage.local.set({ notionDatabases });
+      }
+
+      dbContainer.innerHTML = `
+        <h1 style="font-size:16px;">Manage Databases</h1>
+      `;
+      notionDatabases.forEach((dbItem, index) => {
+        const block = document.createElement("div");
+        block.className = "block-area";
+        block.style.marginTop = "15px";
+        block.innerHTML = `
+          <h2 style="font-size:15px;">Database #${index + 1}</h2>
+          <label>Page ID：</label><br>
+          <input type="text" class="pageIdInput" value="${dbItem.pageId}" data-id="${dbItem.id}" />
+          <br><label>Token：</label><br>
+          <input type="password" class="tokenInput" value="${dbItem.notionToken}" data-id="${dbItem.id}" />
+          <br>
+          <button class="refreshDbBtn" data-id="${dbItem.id}" style="margin-top:10px;">Refresh</button>
+          <button class="deleteDbBtn" data-id="${dbItem.id}" style="margin-left:10px;">Delete</button>
+          <p id="status_${dbItem.id}" style="margin-top:8px; font-size:14px; color:#E0DDDA;">尚未更新</p>
+        `;
+        dbContainer.appendChild(block);
+      });
+      bindDbEvents();
+    });
+  }
+
+  // 綁定各 DB 區塊的事件
+  function bindDbEvents() {
+    document.querySelectorAll(".pageIdInput").forEach(el => {
+      el.addEventListener("change", (e) => {
+        const changedId = e.target.dataset.id;
+        chrome.storage.local.get("notionDatabases", (res) => {
+          const notionDatabases = res.notionDatabases || [];
+          const findItem = notionDatabases.find(x => x.id === changedId);
+          if (findItem) {
+            findItem.pageId = e.target.value.trim();
+            chrome.storage.local.set({ notionDatabases });
+          }
+        });
+      });
+    });
+
+    document.querySelectorAll(".tokenInput").forEach(el => {
+      el.addEventListener("change", (e) => {
+        const changedId = e.target.dataset.id;
+        chrome.storage.local.get("notionDatabases", (res) => {
+          const notionDatabases = res.notionDatabases || [];
+          const findItem = notionDatabases.find(x => x.id === changedId);
+          if (findItem) {
+            findItem.notionToken = e.target.value.trim();
+            chrome.storage.local.set({ notionDatabases });
+          }
+        });
+      });
+    });
+
+    document.querySelectorAll(".deleteDbBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const delId = btn.dataset.id;
+        chrome.storage.local.get("notionDatabases", (res) => {
+          let notionDatabases = res.notionDatabases || [];
+          if (notionDatabases.length === 1) {
+            alert("無法刪除，至少需保留一組資料庫！");
+            return;
+          }
+          notionDatabases = notionDatabases.filter(x => x.id !== delId);
+          chrome.storage.local.set({ notionDatabases }, () => {
+            renderAllDbs();
+          });
+        });
+      });
+    });
+
+    document.querySelectorAll(".refreshDbBtn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const dbId = btn.dataset.id;
+        document.getElementById(`status_${dbId}`).textContent = "讀取中...";
+        // 執行抓取 Notion
+        const success = await fetchSingleNotion(dbId);
+        document.getElementById(`status_${dbId}`).textContent =
+          success ? "完成" : "失敗";
+
+        // 若成功拉到資料，進行 highlight
+        if (success) {
+          // 標記處理時間
+          fetchTime = Date.now();
+          if (!isNeedRecordTime) {
+            isNeedRecordTime = 1;
+            processTime = Date.now();
+          }
+          sendHighlightMessageForAll();
+        }
+      });
+    });
+  }
+
+  // 單一資料庫抓取 Notion
+  async function fetchSingleNotion(dbId) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(["notionDatabases", "splitChar"], async (res) => {
+        let notionDatabases = res.notionDatabases || [];
+        const splitChar = res.splitChar || "/";
+        const targetDb = notionDatabases.find(x => x.id === dbId);
+        if (!targetDb) return resolve(false);
+
+        const pageId = targetDb.pageId.trim();
+        const notionToken = targetDb.notionToken.trim();
+        if (!pageId || !notionToken) {
+          return resolve(false);
+        }
+        try {
+          const allBlocks = await fetchAllBlocks(pageId, notionToken);
+          const notionJson = convertBlocksToJson(allBlocks, splitChar);
+          targetDb.jsonData = substitutePlaceholders(notionJson);
+          chrome.storage.local.set({ notionDatabases }, () => {
+            resolve(true);
+          });
+        } catch (error) {
+          console.error(error);
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  // 拉 Notion Blocks
+  async function fetchAllBlocks(pageId, notionToken) {
+    let allBlocks = [];
+    let hasMore = true;
+    let startCursor;
+    while (hasMore) {
+      let url = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
+      if (startCursor) {
+        url += `&start_cursor=${startCursor}`;
+      }
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${notionToken}`,
+          "Notion-Version": "2022-06-28",
+          "Content-Type": "application/json"
+        }
+      });
+      const data = await response.json();
+      if (data.results) {
+        allBlocks = allBlocks.concat(data.results);
+      }
+      hasMore = data.has_more;
+      startCursor = data.next_cursor;
+    }
+    return allBlocks;
+  }
+
+  // 將 blocks 轉成簡單 key => description
+  function convertBlocksToJson(blocks, splitChar) {
+    const notionJson = {};
+    blocks.forEach(block => {
+      if (
+        block.type === "paragraph" &&
+        block.paragraph &&
+        block.paragraph.rich_text &&
+        block.paragraph.rich_text.length > 0
+      ) {
+        const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
+        const parts = textContent.split(splitChar);
+        if (parts.length >= 2) {
+          const key = parts[0].trim();
+          const merged = parts.slice(1).join(splitChar);
+          const description = merged.trim();
+          if (!notionJson[key]) {
+            notionJson[key] = { description };
+          } else {
+            // 重覆的 key 就把描述合併
+            notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>` + description;
+          }
+        }
+      }
+    });
+    return notionJson;
+  }
+
+  // 取代 &{key} / ~{key} / @{xxx} 這些占位符
   function substitutePlaceholders(originalJsonData) {
     const jsonData = JSON.parse(JSON.stringify(originalJsonData));
     Object.keys(jsonData).forEach(mainKey => {
@@ -67,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  const cleanSubName = refObj["sub-name"]; // 這裡如果沒 sub-name 也沒關係
+                  const cleanSubName = refObj["sub-name"];
                   if (cleanSubName) {
                     return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
                   } else {
@@ -103,176 +312,43 @@ document.addEventListener("DOMContentLoaded", () => {
     return jsonData;
   }
 
-  async function fetchAllBlocks(pageId, notionToken) {
-    let allBlocks = [];
-    let hasMore = true;
-    let startCursor;
-
-    while (hasMore) {
-      let url = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
-      if (startCursor) {
-        url += `&start_cursor=${startCursor}`;
-      }
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${notionToken}`,
-          "Notion-Version": "2022-06-28",
-          "Content-Type": "application/json"
-        }
-      });
-      const data = await response.json();
-      allBlocks = allBlocks.concat(data.results);
-      hasMore = data.has_more;
-      startCursor = data.next_cursor;
-    }
-    return allBlocks;
-  }
-
-  async function fetchNotionData() {
-    // 先取出使用者輸入的分隔字元
-    const storedSplitChar = await new Promise((resolve) => {
-      chrome.storage.local.get("splitChar", (result) => {
-        resolve(result.splitChar || "/");
-      });
-    });
-
-    const storedPageId = await new Promise((resolve) => {
-      chrome.storage.local.get("notionPageId", (result) => {
-        resolve(result.notionPageId || config.apiPageID);
-      });
-    });
-    const notionToken = notionTokenInput.value.trim();
-    fetchStatusEl.textContent = "Data Status：Processing...";
-
-    try {
-      const allBlocks = await fetchAllBlocks(storedPageId, notionToken);
-      let notionJson = {};
-      log = "No problem in your notion blocks";
-      logCount = 0;
-
-      if (Array.isArray(allBlocks)) {
-        allBlocks.forEach(block => {
-          if (
-            block.type === "paragraph" &&
-            block.paragraph &&
-            block.paragraph.rich_text &&
-            block.paragraph.rich_text.length > 0
-          ) {
-            const textContent = block.paragraph.rich_text.map(t => t.plain_text).join("");
-            // 使用使用者輸入的分隔字元 split
-            const parts = textContent.split(storedSplitChar);
-            
-            // 只分成兩塊: key 與 description
-            if (parts.length >= 2) {
-              const key = parts[0].trim();
-              const merged = parts.slice(1).join(storedSplitChar);
-              const description = merged.trim();
-
-              // 若重複的 key，就把 description 拼在一起
-              if(notionJson[key]) {
-                notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>` + description;
-              } else {
-                notionJson[key] = { description: description };
-              }
-            } else {
-              // 假如不是兩段，就表示格式有誤
-              if(logCount === 0) {
-                log = "Please check your notion blocks！";
-                log+= `<div style=\"border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;\"></div>`;
-              }
-              log = log + parts[0].trim()+"...<br>";
-              logCount++;
-            }
-          }
-        });
-      }
-
-      problemBlock.textContent = "Wrong Block：" + logCount;
-      notionJson = substitutePlaceholders(notionJson);
-      fetchStatusEl.textContent = "Data Status：Finish";
-      return notionJson;
-    } catch (error) {
-      console.error("Error fetching Notion data:", error);
-      fetchStatusEl.textContent = "Data Status：Fail";
-      return null;
-    }
-  }
-
-  function sendHighlightMessage() {
-    chrome.storage.local.get(["jsonData", "highlightColor"], (result) => {
-      if (result.jsonData) {
-        const keyValues = Object.entries(result.jsonData).map(([key, value]) => ({ key, value }));
-        const highlightColor = result.highlightColor || highlightColorInput.value || "#ffff33";
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: "HIGHLIGHT_BATCH",
-              keyValues: keyValues,
-              highlightColor: highlightColor
-            });
-          });
-        });
-      }
-    });
-  }
-
-  async function updateHighlighter() {
-    const newData = await fetchNotionData();
-    if (newData) {
-      chrome.storage.local.set({ jsonData: newData }, () => {
-        fetchTime = Date.now();
-        sendHighlightMessage();
-        updateKeyCount();
-        updateModeDisplay("highlighter");
-        updateBackground(true);
-      });
-    } else {
-      updateKeyCount();
-    }
-  }
-
-  // 預設嘗試載入並顯示
-  updateModeDisplay("highlighter");
-  updateKeyCount();
-
-  chrome.storage.local.get(["highlightColor", "notionPageId"], (res) => {
+  // ===== 監聽 Highlight Color 變更 =====
+  chrome.storage.local.get(["highlightColor"], (res) => {
     if (res.highlightColor) {
       highlightColorInput.value = res.highlightColor;
     } else {
       highlightColorInput.value = "#ffff33";
       chrome.storage.local.set({ highlightColor: "#ffff33" });
     }
-    if (res.notionPageId) {
-      notionPageIdInput.value = res.notionPageId;
-    } else {
-      notionPageIdInput.value = config.apiPageID;
-      chrome.storage.local.set({ notionPageId: notionPageIdInput.value });
-    }
   });
-
-  notionPageIdInput.addEventListener("change", (e) => {
-    const newPageId = e.target.value.trim();
-    chrome.storage.local.set({ notionPageId: newPageId });
-  });
-
   highlightColorInput.addEventListener("change", (e) => {
-    chrome.storage.local.set({ highlightColor: e.target.value }, sendHighlightMessage);
+    chrome.storage.local.set({ highlightColor: e.target.value }, sendHighlightMessageForAll);
   });
 
+  // ===== 切換「Highlight / Stop」=====
   toggleModeBtn.addEventListener("click", () => {
     if (toggleModeBtn.textContent === "Highlight！") {
-      chrome.storage.local.get("jsonData", (result) => {
-        if (result.jsonData) {
-          sendHighlightMessage();
-          updateModeDisplay("highlighter");
-          toggleModeBtn.textContent = "Stop";
-          updateBackground(true);
-        } else {
-          alert("No data. Please click refresh button to load it from Notion.");
+      // 檢查是否有資料
+      chrome.storage.local.get("notionDatabases", (res) => {
+        const notionDatabases = res.notionDatabases || [];
+        let hasData = false;
+        for (const db of notionDatabases) {
+          if (db.jsonData && Object.keys(db.jsonData).length > 0) {
+            hasData = true;
+            break;
+          }
         }
+        if (!hasData) {
+          alert("No data. Please click Refresh on any DB block to load from Notion.");
+          return;
+        }
+        sendHighlightMessageForAll();
+        updateModeDisplay("highlighter");
+        toggleModeBtn.textContent = "Stop";
+        updateBackground(true);
       });
     } else {
+      // STOP
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
@@ -282,80 +358,59 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // ===== 刪除全部資料 (清空) =====
   deleteStorageBtn.addEventListener("click", () => {
-    chrome.storage.local.remove(["jsonData"], () => {
-      alert("Data was deleted");
+    chrome.storage.local.remove(["notionDatabases"], () => {
+      alert("All data was deleted");
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
       updateModeDisplay("stopped");
-      keyCountElement.textContent = "0";
+      renderAllDbs();
     });
   });
 
-  refreshBtn.addEventListener("click", () => {
-    isNeedRecordTime = 1;
-    processTime = Date.now();
-    updateHighlighter();
+  // ===== 新增一組 DB =====
+  addDbBtn.addEventListener("click", () => {
+    chrome.storage.local.get("notionDatabases", (res) => {
+      let notionDatabases = res.notionDatabases || [];
+      notionDatabases.push({
+        id: Date.now().toString(),
+        pageId: "",
+        notionToken: "",
+        jsonData: {}
+      });
+      chrome.storage.local.set({ notionDatabases }, () => {
+        renderAllDbs();
+      });
+    });
   });
 
+  // ===== 監聽來自 contentScript 的完成訊息，用於計時 =====
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "HIGHLIGHT_FINISHED" && isNeedRecordTime) {
       const fetchDuration = fetchTime - processTime;
       const highlightDuration = Date.now() - fetchTime;
       const totalSec = (fetchDuration + highlightDuration) / 1000;
-      elapsedTimeElement.textContent = "Process Time：" + totalSec.toFixed(2) + "s";
+      console.log("Process Time：", totalSec.toFixed(2) + "s");
       isNeedRecordTime = 0;
     }
     sendResponse();
   });
 
-  window.addEventListener("load", () => {
-    chrome.storage.local.get("jsonData", (result) => {
-      if (result.jsonData) {
-        sendHighlightMessage();
+  // ===== 初始化 =====
+  renderAllDbs();
+  // 檢查是否已經有資料
+  chrome.storage.local.get("notionDatabases", (res) => {
+    const notionDatabases = res.notionDatabases || [];
+    let hasData = false;
+    for (const db of notionDatabases) {
+      if (db.jsonData && Object.keys(db.jsonData).length > 0) {
+        hasData = true;
+        break;
       }
-    });
-  });
-
-  window.addEventListener("popstate", sendHighlightMessage);
-  window.addEventListener("hashchange", sendHighlightMessage);
-
-  (function(history) {
-    const pushState = history.pushState;
-    history.pushState = function(state) {
-      const ret = pushState.apply(history, arguments);
-      window.dispatchEvent(new Event("popstate"));
-      return ret;
-    };
-  })(window.history);
-
-  chrome.storage.local.get("notionToken", (res) => {
-    if (res.notionToken) {
-      notionTokenInput.value = res.notionToken;
-      saveTokenCheckbox.checked = true;
-    } else {
-      notionTokenInput.value = "";
-      saveTokenCheckbox.checked = false;
     }
-  });
-
-  saveTokenCheckbox.addEventListener("change", (e) => {
-    if (e.target.checked) {
-      chrome.storage.local.set({ notionToken: notionTokenInput.value.trim() });
-    } else {
-      chrome.storage.local.remove("notionToken");
-    }
-  });
-
-  notionTokenInput.addEventListener("change", (e) => {
-    if (saveTokenCheckbox.checked) {
-      chrome.storage.local.set({ notionToken: e.target.value.trim() });
-    }
-  });
-
-  chrome.storage.local.get("jsonData", (result) => {
-    if (result.jsonData) {
+    if (hasData) {
       toggleModeBtn.textContent = "Stop";
       updateModeDisplay("highlighter");
       updateBackground(true);
@@ -365,42 +420,4 @@ document.addEventListener("DOMContentLoaded", () => {
       updateBackground(false);
     }
   });
-
-  togglePageIdVisibility.addEventListener("click", () => {
-    const pageIdInput = document.getElementById("notionPageId");
-    pageIdInput.type = pageIdInput.type === "password" ? "text" : "password";
-    togglePageIdVisibility.textContent = "👁";
-  });
-
-  toggleTokenVisibility.addEventListener("click", () => {
-    const tokenInput = document.getElementById("notionToken");
-    tokenInput.type = tokenInput.type === "password" ? "text" : "password";
-    toggleTokenVisibility.textContent = "👁";
-  });
-
-  if (problemBlock) {
-    problemBlock.addEventListener("mouseover", (e) => {
-      let tooltip = document.createElement("div");
-      tooltip.id = "problemTooltip";
-      tooltip.style.position = "absolute";
-      tooltip.style.padding = "8px 12px";
-      tooltip.style.background = "rgba(0, 0, 0, 0.8)";
-      tooltip.style.color = "#fff";
-      tooltip.style.borderRadius = "4px";
-      tooltip.style.fontSize = "14px";
-      tooltip.style.zIndex = "10000";
-      tooltip.innerHTML = log;
-      document.body.appendChild(tooltip);
-      const rect = problemBlock.getBoundingClientRect();
-      const tooltipWidth = tooltip.offsetWidth;
-      tooltip.style.left = (rect.left + (rect.width - tooltipWidth) / 2) + "px";
-      tooltip.style.top = (rect.bottom + 5) + "px";
-    });
-
-    problemBlock.addEventListener("mouseout", () => {
-      const tooltip = document.getElementById("problemTooltip");
-      if (tooltip) tooltip.remove();
-    });
-  }
 });
-

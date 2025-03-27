@@ -105,7 +105,7 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
     keys.push(key);
   });
 
-  // 長度排序，避免短單字先符合
+  // 依照長度排序，避免短單字先符合
   keys.sort((a, b) => b.length - a.length);
   const pattern = keys.map(escapeRegExp).join("|");
   const regex = new RegExp(`(${pattern})`, "gi");
@@ -197,12 +197,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function updateHighlightsFromStorage() {
-  chrome.storage.local.get(["jsonData", "highlightColor"], (result) => {
-    const jsonData = result.jsonData;
+  // 重新抓取 notionDatabases，將所有 db.jsonData 合併後再 highlight
+  chrome.storage.local.get(["notionDatabases", "highlightColor"], (result) => {
+    clearHighlight();
+
+    const notionDatabases = result.notionDatabases || [];
+    const combinedData = {};
+    notionDatabases.forEach(db => {
+      if (db.jsonData && typeof db.jsonData === "object") {
+        Object.entries(db.jsonData).forEach(([key, value]) => {
+          combinedData[key] = value;
+        });
+      }
+    });
+
     const savedColor = result.highlightColor || "#ffff33";
-    if (jsonData) {
-      clearHighlight();
-      const keyValues = Object.entries(jsonData).map(([key, value]) => ({ key, value }));
+    if (Object.keys(combinedData).length > 0) {
+      const keyValues = Object.entries(combinedData).map(([key, value]) => ({ key, value }));
       highlightAll(keyValues, document.body, savedColor);
     }
   });
