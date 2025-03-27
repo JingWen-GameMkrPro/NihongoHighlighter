@@ -5,8 +5,7 @@
   "description": "這個插件工具將您的 Notion 筆記與網頁內容無縫連結，當網頁出現您曾記錄的單字時，插件會螢光標記該單字，滑鼠懸浮在該單字將會呈現筆記資訊，讓閱讀外語文章的過程中持續回顧與知識強化。",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"  
   ],
   "action": {
     "default_popup": "popup.html",
