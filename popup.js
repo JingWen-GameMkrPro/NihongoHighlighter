@@ -16,10 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleTokenVisibility = document.getElementById("toggleTokenVisibility");
   const saveTokenCheckbox = document.getElementById("saveTokenCheckbox");
 
-  // 資料庫顯示區 DOM（單一顯示）
+  // 單一資料庫顯示區 DOM
   const dbDisplay = document.getElementById("dbDisplay");
   const prevDbBtn = document.getElementById("prevDbBtn");
   const nextDbBtn = document.getElementById("nextDbBtn");
+  const dbIndexIndicator = document.getElementById("dbIndexIndicator");
 
   // ========== 初始化：Token、SplitChar、HighlightColor ==========
   chrome.storage.local.get("notionToken", (res) => {
@@ -86,37 +87,35 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.local.set({ notionDatabases });
         currentDbIndex = 0;
       }
-      // 調整 currentDbIndex 範圍
+      // 初次若 currentDbIndex = -1，則表示從尾端開始
+      if (currentDbIndex === -1) {
+        currentDbIndex = notionDatabases.length - 1;
+      }
       if (currentDbIndex < 0) currentDbIndex = 0;
       if (currentDbIndex >= notionDatabases.length) currentDbIndex = notionDatabases.length - 1;
-
       const total = notionDatabases.length;
       const currentNum = currentDbIndex + 1;
-
+      // 更新索引指示器
+      dbIndexIndicator.textContent = `${currentNum}/${total}`;
       const dbItem = notionDatabases[currentDbIndex];
       const showTitle = dbItem.pageTitle ? dbItem.pageTitle : `Database #${currentNum}`;
       const html = `
-        <h1 style="font-size:15px;">
-          ${showTitle}
-        </h1>
+        <h1 style="font-size:15px;">${showTitle}</h1>
         <label>Page ID：</label><br>
-        <input type="text" class="styled-input" value="${dbItem.pageId}" data-id="${dbItem.id}" />
+        <input type="text" class="pageIdInput styled-input" value="${dbItem.pageId}" data-id="${dbItem.id}" />
         <br>
-
         ${renderStatsInfo(dbItem)}
         <button class="refreshDbBtn" data-id="${dbItem.id}" style="margin-top:10px;">Refresh</button>
         <button class="deleteDbBtn" data-id="${dbItem.id}" style="margin-top:10px;">Delete</button>
-        <br>
-        <br>
+        <br><br>
         <span style="font-size:14px;">${currentNum}/${total}</span>
       `;
       dbDisplay.innerHTML = html;
-      bindDbEvents(); // 綁定該區域內的事件
-      updateNavButtons(notionDatabases.length);
+      bindDbEvents();
+      updateNavButtons(total);
     });
   }
 
-  // 將 latestStats 渲染為 HTML
   function renderStatsInfo(dbItem) {
     const stats = dbItem.latestStats;
     if (!stats) {
@@ -136,7 +135,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 綁定單一資料庫區內的事件
   function bindDbEvents() {
     const pageIdInput = dbDisplay.querySelector(".pageIdInput");
     if (pageIdInput) {
@@ -158,6 +156,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const dbId = refreshBtn.dataset.id;
         const statusEl = document.getElementById(`status_${dbId}`);
         if (statusEl) statusEl.textContent = "Data Status：Processing...";
+        // 先從輸入框取得最新 Page ID，並同步更新 storage
+        const pageIdInput = dbDisplay.querySelector(".pageIdInput");
+        if (pageIdInput) {
+          const newPageId = pageIdInput.value.trim();
+          const storageData = await new Promise(resolve => chrome.storage.local.get("notionDatabases", resolve));
+          let notionDatabases = storageData.notionDatabases || [];
+          const targetDb = notionDatabases.find(x => x.id === dbId);
+          if (targetDb) {
+            targetDb.pageId = newPageId;
+            await new Promise(resolve => chrome.storage.local.set({ notionDatabases }, resolve));
+          }
+        }
         const startTime = performance.now();
         const success = await fetchSingleNotion(dbId, startTime);
         if (success) {
@@ -182,7 +192,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
           notionDatabases = notionDatabases.filter(x => x.id !== delId);
-          // 若刪除的資料庫為目前顯示，調整 currentDbIndex
           if (currentDbIndex >= notionDatabases.length) {
             currentDbIndex = notionDatabases.length - 1;
           }
@@ -192,7 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     }
-    // 問題區塊 Tooltip
     const problemBlockP = dbDisplay.querySelector(`#problemBlock_${pageIdInput?.dataset.id}`);
     if (problemBlockP) {
       problemBlockP.addEventListener("mouseover", () => {
@@ -224,7 +232,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 更新上一個／下一個按鈕狀態
   function updateNavButtons(total) {
     prevDbBtn.disabled = (currentDbIndex <= 0);
     nextDbBtn.disabled = (currentDbIndex >= total - 1);
@@ -259,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ========== 單一資料庫抓取 Notion、取得 Page Title 與統計 ==========
+  // ========== 單一資料庫抓取 Notion 與更新 Page Title、統計 ==========
   async function fetchSingleNotion(dbId, startTime) {
     return new Promise((resolve) => {
       chrome.storage.local.get(["notionDatabases", "splitChar", "notionToken"], async (res) => {
@@ -273,10 +280,8 @@ document.addEventListener("DOMContentLoaded", () => {
           return resolve(false);
         }
         try {
-          // 先取得 Page Title
           const pageTitle = await fetchPageTitle(pageId, notionToken);
           targetDb.pageTitle = pageTitle;
-          // 取得 Blocks
           const allBlocks = await fetchAllBlocks(pageId, notionToken);
           const { notionJson, problemBlockList } = convertBlocksToJson(allBlocks, splitChar);
           targetDb.jsonData = substitutePlaceholders(notionJson);
@@ -434,15 +439,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return jsonData;
   }
 
-  // ========== 合併所有 DB & 將重複 key 再以分隔線合併，最後發送給 contentScript ==========
   function sendHighlightMessageForAll() {
     chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
       const notionDatabases = res.notionDatabases || [];
       const color = res.highlightColor || highlightColorInput.value || "#ffff33";
-
       const finalCombined = {};
-
-      // 🔴 這裡跨資料庫 key 重複也用分隔線合併
+      // 跨資料庫重複 key 用分隔線合併，且前面標示來源（以灰色小字顯示）
       notionDatabases.forEach(db => {
         if (db.jsonData && typeof db.jsonData === "object") {
           for (const [key, val] of Object.entries(db.jsonData)) {
@@ -455,9 +457,7 @@ ${val.description}`;
           }
         }
       });
-
       const keyValues = Object.entries(finalCombined).map(([k, v]) => ({ key: k, value: v }));
-
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
           chrome.tabs.sendMessage(tabs[0].id, {
@@ -470,7 +470,7 @@ ${val.description}`;
     });
   }
 
-  // ========== 控制「Highlight！」／「Stop」按鈕 ==========
+  // ========== 「Highlight！」／「Stop」按鈕 ==========
   toggleModeBtn.addEventListener("click", () => {
     chrome.storage.local.get("notionDatabases", (res) => {
       const notionDatabases = res.notionDatabases || [];
@@ -522,7 +522,7 @@ ${val.description}`;
     sendResponse();
   });
 
-  // ========== 事件：上一個／下一個按鈕 ==========
+  // ========== 上一個／下一個按鈕 ==========
   prevDbBtn.addEventListener("click", () => {
     currentDbIndex--;
     renderCurrentDb();
@@ -532,23 +532,18 @@ ${val.description}`;
     renderCurrentDb();
   });
 
-  // 初始載入
-  //renderCurrentDb();
+  // 初始載入：若已有資料則預設顯示最後一筆資料
   chrome.storage.local.get("notionDatabases", (res) => {
     const notionDatabases = res.notionDatabases || [];
-    let hasData = false;
-    // 初始載入時，將 currentDbIndex 指到「最後一個」
     if (notionDatabases.length > 0) {
       currentDbIndex = notionDatabases.length - 1;
     }
-
+    let hasData = false;
     for (const db of notionDatabases) {
       if (db.jsonData && Object.keys(db.jsonData).length > 0) {
         hasData = true;
         break;
-
       }
-      
     }
     renderCurrentDb();
     if (hasData) {

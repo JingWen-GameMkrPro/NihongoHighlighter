@@ -98,7 +98,7 @@
       font-size: 14px;
       color: #FDF6F1;
     }
-    /* 改為單一資料庫顯示區 */
+    /* 單一資料庫顯示區 */
     #dbDisplay {
       margin-top: 20px;
       padding: 15px;
@@ -115,7 +115,7 @@
     }
     .nav-buttons button {
       width: 48%;
-      text-align: center; /* 新增的內容：確保按鈕文字置中 */
+      text-align: center;
     }
     #addDbBtn, #deleteStorageBtn {
       margin-top: 10px;
@@ -131,7 +131,7 @@
       padding: 8px 30px 8px 8px;
       font-size: 14px;
       color: #3C2A27;
-      background-color: rgba(255,255,255, 0.7);
+      background-color: rgba(255,255,255,0.7);
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
       border: 1px solid rgba(255,255,255,0.3);
       border-radius: 8px;
@@ -160,6 +160,13 @@
     }
     .info-line:hover {
       text-decoration: none;
+    }
+    /* 顯示資料庫索引 */
+    #dbIndexIndicator {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #FDF6F1;
     }
   </style>
 </head>
@@ -207,8 +214,11 @@
       <button id="nextDbBtn">下一個</button>
     </div>
     
-    <button id="addDbBtn" style="margin-top:10px;">＋ 新增一組資料庫</button>
-    <button id="deleteStorageBtn" style="margin-top:10px;">Delete All Data</button>
+    <!-- 資料庫索引指示 -->
+    <p id="dbIndexIndicator"></p>
+    
+    <button id="addDbBtn">＋ 新增一組資料庫</button>
+    <button id="deleteStorageBtn">Delete All Data</button>
   </div>
 
   <script src="popup.js"></script>
