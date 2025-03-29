@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const dbDisplay = document.getElementById("dbDisplay");
   const prevDbBtn = document.getElementById("prevDbBtn");
   const nextDbBtn = document.getElementById("nextDbBtn");
-  const dbIndexIndicator = document.getElementById("dbIndexIndicator");
+  //const dbIndexIndicator = document.getElementById("dbIndexIndicator");
 
   // ========== 初始化：Token、SplitChar、HighlightColor ==========
   chrome.storage.local.get("notionToken", (res) => {
@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const total = notionDatabases.length;
       const currentNum = currentDbIndex + 1;
       // 更新索引指示器
-      dbIndexIndicator.textContent = `${currentNum}/${total}`;
+      //dbIndexIndicator.textContent = `${currentNum}/${total}`;
       const dbItem = notionDatabases[currentDbIndex];
       const showTitle = dbItem.pageTitle ? dbItem.pageTitle : `Database #${currentNum}`;
       const html = `
@@ -468,11 +468,7 @@ ${val.description}`;
       });
     });
   }
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === "complete") {
-      chrome.tabs.sendMessage(tabId, { action: "HIGHLIGHT_BATCH" });
-    }
-  });
+
   // ========== 「Highlight！」／「Stop」按鈕 ==========
   toggleModeBtn.addEventListener("click", () => {
     if (toggleModeBtn.textContent === "Highlight！") {
