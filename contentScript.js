@@ -181,23 +181,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   sendResponse();
 });
-
+// 將合併跨資料庫資料的邏輯移至此函式中
 function updateHighlightsFromStorage() {
   chrome.storage.local.get(["notionDatabases", "highlightColor"], (result) => {
     clearHighlight();
     const notionDatabases = result.notionDatabases || [];
-    const combinedData = {};
+    const color = result.highlightColor || "#ffff33";
+    const finalCombined = {};
+    // 跨資料庫重複 key 用分隔線合併，且前面標示來源
     notionDatabases.forEach(db => {
       if (db.jsonData && typeof db.jsonData === "object") {
-        Object.entries(db.jsonData).forEach(([key, value]) => {
-          combinedData[key] = value;
-        });
+        for (const [key, val] of Object.entries(db.jsonData)) {
+          if (!finalCombined[key]) {
+            finalCombined[key] = { description: `<span style="color: gray; font-size: 10px;">From: ${db.pageTitle}</span>\n${val.description}` };
+          } else {
+            finalCombined[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"><span style="color: gray; font-size: 10px;">From: ${db.pageTitle}</span>
+${val.description}`;
+          }
+        }
       }
     });
-    const savedColor = result.highlightColor || "#ffff33";
-    if (Object.keys(combinedData).length > 0) {
-      const keyValues = Object.entries(combinedData).map(([key, value]) => ({ key, value }));
-      highlightAll(keyValues, document.body, savedColor);
+    if (Object.keys(finalCombined).length > 0) {
+      const keyValues = Object.entries(finalCombined).map(([key, value]) => ({ key, value }));
+      highlightAll(keyValues, document.body, color);
     }
   });
 }

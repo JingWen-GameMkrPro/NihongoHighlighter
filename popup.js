@@ -438,7 +438,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     return jsonData;
   }
-
   function sendHighlightMessageForAll() {
     chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
       const notionDatabases = res.notionDatabases || [];
@@ -469,30 +468,33 @@ ${val.description}`;
       });
     });
   }
-
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === "complete") {
+      chrome.tabs.sendMessage(tabId, { action: "HIGHLIGHT_BATCH" });
+    }
+  });
   // ========== 「Highlight！」／「Stop」按鈕 ==========
   toggleModeBtn.addEventListener("click", () => {
-    chrome.storage.local.get("notionDatabases", (res) => {
-      const notionDatabases = res.notionDatabases || [];
-      let hasData = false;
-      for (const db of notionDatabases) {
-        if (db.jsonData && Object.keys(db.jsonData).length > 0) {
-          hasData = true;
-          break;
+    if (toggleModeBtn.textContent === "Highlight！") {
+      chrome.storage.local.get("notionDatabases", (res) => {
+        const notionDatabases = res.notionDatabases || [];
+        let hasData = false;
+        for (const db of notionDatabases) {
+          if (db.jsonData && Object.keys(db.jsonData).length > 0) {
+            hasData = true;
+            break;
+          }
         }
-      }
-      if (!hasData) {
-        alert("No data. Please click Refresh on the current database to load from Notion.");
-        return;
-      }
-      sendHighlightMessageForAll();
-      updateModeDisplay("highlighter");
-      toggleModeBtn.textContent = "Stop";
-      updateBackground(true);
-    });
-  });
-  toggleModeBtn.addEventListener("click", () => {
-    if (toggleModeBtn.textContent === "Stop") {
+        if (!hasData) {
+          alert("No data. Please click Refresh on the current database to load from Notion.");
+          return;
+        }
+        sendHighlightMessageForAll();
+        updateModeDisplay("highlighter");
+        toggleModeBtn.textContent = "Stop";
+        updateBackground(true);
+      });
+    } else {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
