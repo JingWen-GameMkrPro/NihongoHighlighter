@@ -101,8 +101,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const showTitle = dbItem.pageTitle ? dbItem.pageTitle : `Database #${currentNum}`;
       const html = `
         <h1 style="font-size:15px;">${showTitle}</h1>
-        <label>Page ID：</label><br>
-        <input type="text" class="pageIdInput styled-input" value="${dbItem.pageId}" data-id="${dbItem.id}" />
+        <label class="info-line">Page ID：</label><br>
+        <input type="text" class="pageIdInput styled-input" style="margin-top:10px;" value="${dbItem.pageId}" data-id="${dbItem.id}" />
+        <br>
         <br>
         ${renderStatsInfo(dbItem)}
         <button class="refreshDbBtn" data-id="${dbItem.id}" style="margin-top:10px;">Refresh</button>
