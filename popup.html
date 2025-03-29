@@ -43,29 +43,15 @@
       margin-bottom: 16px;
       color: #FDF6F1;
     }
-    #currentDataSource, #currentMode, #fetchStatus {
+    #currentMode {
       font-size: 16px;
       text-align: center;
       color: #FDF6F1;
       margin: 5px 0;
     }
-    #currentDataSource img, #title img {
-      width: 24px;
-      height: 24px;
-      vertical-align: middle;
-      margin-right: 8px;
-      margin-bottom: 2px;
-      object-fit: contain;
-    }
     #title img {
       width: 28px;
       height: 28px;
-    }
-    .btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 20px;
     }
     button {
       width: 100%;
@@ -105,25 +91,33 @@
       text-align: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
-    #dbContainer .block-area {
-      position: relative;
-      margin-top: 15px;
-    }
-    #notionCredentials label {
-      font-size: 16px;
-      margin-bottom: 5px;
-      display: block;
+    #tutorial {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
       color: #FDF6F1;
     }
-    #notionCredentials input[type="text"],
-    #notionCredentials input[type="password"] {
-      font-size: 14px;
-      color: #3C2A27;
-      background-color: rgba(255,255,255, 0.7);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      box-sizing: border-box;
+    /* 改為單一資料庫顯示區 */
+    #dbDisplay {
+      margin-top: 20px;
+      padding: 15px;
       border: 1px solid rgba(255,255,255,0.3);
       border-radius: 8px;
+      background-color: rgba(255,255,255,0.1);
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .nav-buttons button {
+      width: 48%;
+    }
+    #addDbBtn, #deleteStorageBtn {
+      margin-top: 10px;
     }
     .input-container {
       position: relative;
@@ -134,6 +128,12 @@
     .styled-input {
       width: 100%;
       padding: 8px 30px 8px 8px;
+      font-size: 14px;
+      color: #3C2A27;
+      background-color: rgba(255,255,255, 0.7);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
     }
     .toggle-visibility {
       position: absolute;
@@ -150,31 +150,15 @@
       justify-content: center;
       gap: 8px;
     }
-    #tokenHeader label {
-      margin: 0;
+    .info-line {
       font-size: 14px;
-      color: #FDF6F1;
-    }
-    #tutorial {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      color: #FDF6F1;
-    }
-    /* 針對多資料庫容器 */
-    #dbContainer input {
-      margin-top: 8px;
-      width: 80%;
+      color: #F2E6DF;
+      margin: 4px 0;
       text-align: center;
+      cursor: default;
     }
-    #dbContainer button {
-      margin-top: 10px;
-    }
-    #statusText {
-      margin-top: 8px;
-      font-size: 14px;
-      color: #E0DDDA;
+    .info-line:hover {
+      text-decoration: none;
     }
   </style>
 </head>
@@ -188,7 +172,20 @@
       </p>
     </div>
 
-    <!-- 模式切換區 (Highlight or Stop)，顯示分隔字元與 Highlight 顏色 -->
+    <!-- 共同 Notion Token 區 -->
+    <div class="block-area">
+      <div id="tokenHeader">
+        <label style="margin: 0; font-size: 16px;">Notion Token：</label>
+        <p style="color: #FDF6F1;">
+          <input type="checkbox" id="saveTokenCheckbox"> Save Token
+        </p>
+      </div>
+      <div class="input-container">
+        <input type="password" id="notionToken" placeholder="Enter Notion Token" class="styled-input">
+        <span id="toggleTokenVisibility" class="toggle-visibility">👁</span>
+      </div>
+    </div>
+
     <div class="block-area">
       <h1 id="currentMode">Current Mode：Stop</h1>
       <label for="splitChar">Split character：</label>
@@ -200,12 +197,15 @@
       <button id="toggleModeBtn">Highlight！</button>
     </div>
 
-    <!-- 多資料庫管理容器 -->
-    <div id="dbContainer" class="block-area" style="margin-top: 20px;">
-      <h1 style="font-size:16px;">Manage Databases</h1>
-      <!-- 這裡透過 JS 動態渲染多組資料庫輸入塊 -->
+    <!-- 單一資料庫顯示區 -->
+    <div id="dbDisplay" class="block-area" style="margin-top: 20px;">
+      <!-- 此處會動態顯示單一資料庫資訊 -->
     </div>
-
+    <div class="nav-buttons">
+      <button id="prevDbBtn">上一個</button>
+      <button id="nextDbBtn">下一個</button>
+    </div>
+    
     <button id="addDbBtn" style="margin-top:10px;">＋ 新增一組資料庫</button>
     <button id="deleteStorageBtn" style="margin-top:10px;">Delete All Data</button>
   </div>

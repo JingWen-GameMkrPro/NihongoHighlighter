@@ -1,6 +1,7 @@
 let processTime = 0;
 let isNeedRecordTime = 0;
 let fetchTime = 0;
+let currentDbIndex = 0; // 目前顯示的資料庫索引
 
 document.addEventListener("DOMContentLoaded", () => {
   const toggleModeBtn = document.getElementById("toggleModeBtn");
@@ -8,10 +9,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const currentModeP = document.getElementById("currentMode");
   const highlightColorInput = document.getElementById("highlightColor");
   const splitCharInput = document.getElementById("splitChar");
-  const dbContainer = document.getElementById("dbContainer");
   const addDbBtn = document.getElementById("addDbBtn");
 
-  // 初次載入時，嘗試讀 splitChar
+  // 與 Token 相關 DOM
+  const notionTokenInput = document.getElementById("notionToken");
+  const toggleTokenVisibility = document.getElementById("toggleTokenVisibility");
+  const saveTokenCheckbox = document.getElementById("saveTokenCheckbox");
+
+  // 資料庫顯示區 DOM（單一顯示）
+  const dbDisplay = document.getElementById("dbDisplay");
+  const prevDbBtn = document.getElementById("prevDbBtn");
+  const nextDbBtn = document.getElementById("nextDbBtn");
+
+  // ========== 初始化：Token、SplitChar、HighlightColor ==========
+  chrome.storage.local.get("notionToken", (res) => {
+    if (res.notionToken) {
+      notionTokenInput.value = res.notionToken;
+      saveTokenCheckbox.checked = true;
+    } else {
+      notionTokenInput.value = "";
+      saveTokenCheckbox.checked = false;
+    }
+  });
+  saveTokenCheckbox.addEventListener("change", (e) => {
+    if (e.target.checked) {
+      chrome.storage.local.set({ notionToken: notionTokenInput.value.trim() });
+    } else {
+      chrome.storage.local.remove("notionToken");
+    }
+  });
+  notionTokenInput.addEventListener("change", (e) => {
+    if (saveTokenCheckbox.checked) {
+      chrome.storage.local.set({ notionToken: e.target.value.trim() });
+    }
+  });
+  toggleTokenVisibility.addEventListener("click", () => {
+    notionTokenInput.type = notionTokenInput.type === "password" ? "text" : "password";
+    toggleTokenVisibility.textContent = "👁";
+  });
   chrome.storage.local.get(["splitChar"], (res) => {
     if (res.splitChar) {
       splitCharInput.value = res.splitChar;
@@ -20,97 +55,82 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.storage.local.set({ splitChar: "/" });
     }
   });
-
-  // 監聽使用者改動 splitChar
   splitCharInput.addEventListener("change", (e) => {
     chrome.storage.local.set({ splitChar: e.target.value });
   });
+  chrome.storage.local.get(["highlightColor"], (res) => {
+    if (res.highlightColor) {
+      highlightColorInput.value = res.highlightColor;
+    } else {
+      highlightColorInput.value = "#ffff33";
+      chrome.storage.local.set({ highlightColor: "#ffff33" });
+    }
+  });
+  highlightColorInput.addEventListener("change", (e) => {
+    chrome.storage.local.set({ highlightColor: e.target.value }, sendHighlightMessageForAll);
+  });
 
-  // 更新背景
-  function updateBackground(isHighlighting) {
-    document.body.style.background = isHighlighting
-      ? "linear-gradient(120deg, #4A251B 0%, #7F4339 100%)"
-      : "linear-gradient(120deg, rgb(61, 61, 61) 0%, rgb(0, 0, 0) 100%)";
-  }
-
-  // 更新模式文字
-  function updateModeDisplay(mode) {
-    currentModeP.textContent = "Current Mode：" + (mode === "highlighter" ? "Highlighting" : "Stop");
-  }
-
-  // 用於將多資料庫 jsonData 合併，然後傳送給 contentScript
-  function sendHighlightMessageForAll() {
-    chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
-      const notionDatabases = res.notionDatabases || [];
-      const color = res.highlightColor || highlightColorInput.value || "#ffff33";
-
-      const combined = {};
-      notionDatabases.forEach(db => {
-        if (db.jsonData && typeof db.jsonData === "object") {
-          Object.entries(db.jsonData).forEach(([k, v]) => {
-            combined[k] = v;
-          });
-        }
-      });
-
-      const keyValues = Object.entries(combined).map(([key, value]) => ({ key, value }));
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        // 先清掉舊 highlight
-        chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
-          // 再進行新的 highlight
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: "HIGHLIGHT_BATCH",
-            keyValues: keyValues,
-            highlightColor: color
-          });
-        });
-      });
-    });
-  }
-
-  // 讀取所有資料庫，進行畫面渲染
-  function renderAllDbs() {
+  // ========== 單一資料庫顯示區 ==========
+  function renderCurrentDb() {
     chrome.storage.local.get("notionDatabases", (res) => {
       let notionDatabases = res.notionDatabases || [];
+      // 確保至少有一組資料庫
       if (!notionDatabases.length) {
-        // 預設至少一組
         notionDatabases = [{
           id: Date.now().toString(),
           pageId: "",
-          notionToken: "",
-          jsonData: {}
+          pageTitle: "",
+          jsonData: {},
+          latestStats: null
         }];
         chrome.storage.local.set({ notionDatabases });
+        currentDbIndex = 0;
       }
-
-      dbContainer.innerHTML = `
-        <h1 style="font-size:16px;">Manage Databases</h1>
+      // 調整 currentDbIndex 範圍
+      if (currentDbIndex < 0) currentDbIndex = 0;
+      if (currentDbIndex >= notionDatabases.length) currentDbIndex = notionDatabases.length - 1;
+      const dbItem = notionDatabases[currentDbIndex];
+      const showTitle = dbItem.pageTitle ? dbItem.pageTitle : `Database #${currentDbIndex + 1}`;
+      const html = `
+        <h2 style="font-size:15px;">${showTitle}</h2>
+        <label>Page ID：</label><br>
+        <input type="text" class="pageIdInput" value="${dbItem.pageId}" data-id="${dbItem.id}" />
+        <br>
+        <button class="refreshDbBtn" data-id="${dbItem.id}" style="margin-top:10px;">Refresh</button>
+        <button class="deleteDbBtn" data-id="${dbItem.id}" style="margin-left:10px;">Delete</button>
+        ${renderStatsInfo(dbItem)}
       `;
-      notionDatabases.forEach((dbItem, index) => {
-        const block = document.createElement("div");
-        block.className = "block-area";
-        block.style.marginTop = "15px";
-        block.innerHTML = `
-          <h2 style="font-size:15px;">Database #${index + 1}</h2>
-          <label>Page ID：</label><br>
-          <input type="text" class="pageIdInput" value="${dbItem.pageId}" data-id="${dbItem.id}" />
-          <br><label>Token：</label><br>
-          <input type="password" class="tokenInput" value="${dbItem.notionToken}" data-id="${dbItem.id}" />
-          <br>
-          <button class="refreshDbBtn" data-id="${dbItem.id}" style="margin-top:10px;">Refresh</button>
-          <button class="deleteDbBtn" data-id="${dbItem.id}" style="margin-left:10px;">Delete</button>
-          <p id="status_${dbItem.id}" style="margin-top:8px; font-size:14px; color:#E0DDDA;">尚未更新</p>
-        `;
-        dbContainer.appendChild(block);
-      });
-      bindDbEvents();
+      dbDisplay.innerHTML = html;
+      bindDbEvents(); // 綁定該區域內的事件
+      updateNavButtons(notionDatabases.length);
     });
   }
 
-  // 綁定各 DB 區塊的事件
+  // 將 latestStats 渲染為 HTML
+  function renderStatsInfo(dbItem) {
+    const stats = dbItem.latestStats;
+    if (!stats) {
+      return `
+        <p class="info-line" id="status_${dbItem.id}">Data Status：None</p>
+        <p class="info-line" id="elapsedTime_${dbItem.id}">Runtime：0ms</p>
+        <p class="info-line" id="keyCount_${dbItem.id}">Block Number：0</p>
+        <p class="info-line" id="problemBlock_${dbItem.id}">Wrong Block：0</p>
+      `;
+    } else {
+      return `
+        <p class="info-line" id="status_${dbItem.id}">Data Status：${stats.dataStatus}</p>
+        <p class="info-line" id="elapsedTime_${dbItem.id}">Runtime：${stats.runTime.toFixed(2)}s</p>
+        <p class="info-line" id="keyCount_${dbItem.id}">Block Number：${stats.blockCount}</p>
+        <p class="info-line" id="problemBlock_${dbItem.id}">Wrong Block：${stats.problemCount}</p>
+      `;
+    }
+  }
+
+  // 綁定單一資料庫區內的事件
   function bindDbEvents() {
-    document.querySelectorAll(".pageIdInput").forEach(el => {
-      el.addEventListener("change", (e) => {
+    const pageIdInput = dbDisplay.querySelector(".pageIdInput");
+    if (pageIdInput) {
+      pageIdInput.addEventListener("change", (e) => {
         const changedId = e.target.dataset.id;
         chrome.storage.local.get("notionDatabases", (res) => {
           const notionDatabases = res.notionDatabases || [];
@@ -121,51 +141,16 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
       });
-    });
-
-    document.querySelectorAll(".tokenInput").forEach(el => {
-      el.addEventListener("change", (e) => {
-        const changedId = e.target.dataset.id;
-        chrome.storage.local.get("notionDatabases", (res) => {
-          const notionDatabases = res.notionDatabases || [];
-          const findItem = notionDatabases.find(x => x.id === changedId);
-          if (findItem) {
-            findItem.notionToken = e.target.value.trim();
-            chrome.storage.local.set({ notionDatabases });
-          }
-        });
-      });
-    });
-
-    document.querySelectorAll(".deleteDbBtn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const delId = btn.dataset.id;
-        chrome.storage.local.get("notionDatabases", (res) => {
-          let notionDatabases = res.notionDatabases || [];
-          if (notionDatabases.length === 1) {
-            alert("無法刪除，至少需保留一組資料庫！");
-            return;
-          }
-          notionDatabases = notionDatabases.filter(x => x.id !== delId);
-          chrome.storage.local.set({ notionDatabases }, () => {
-            renderAllDbs();
-          });
-        });
-      });
-    });
-
-    document.querySelectorAll(".refreshDbBtn").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const dbId = btn.dataset.id;
-        document.getElementById(`status_${dbId}`).textContent = "讀取中...";
-        // 執行抓取 Notion
-        const success = await fetchSingleNotion(dbId);
-        document.getElementById(`status_${dbId}`).textContent =
-          success ? "完成" : "失敗";
-
-        // 若成功拉到資料，進行 highlight
+    }
+    const refreshBtn = dbDisplay.querySelector(".refreshDbBtn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", async () => {
+        const dbId = refreshBtn.dataset.id;
+        const statusEl = document.getElementById(`status_${dbId}`);
+        if (statusEl) statusEl.textContent = "Data Status：Processing...";
+        const startTime = performance.now();
+        const success = await fetchSingleNotion(dbId, startTime);
         if (success) {
-          // 標記處理時間
           fetchTime = Date.now();
           if (!isNeedRecordTime) {
             isNeedRecordTime = 1;
@@ -173,40 +158,151 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           sendHighlightMessageForAll();
         }
+        renderCurrentDb();
       });
-    });
+    }
+    const deleteBtn = dbDisplay.querySelector(".deleteDbBtn");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => {
+        const delId = deleteBtn.dataset.id;
+        chrome.storage.local.get("notionDatabases", (res) => {
+          let notionDatabases = res.notionDatabases || [];
+          if (notionDatabases.length === 1) {
+            alert("無法刪除，至少需保留一組資料庫！");
+            return;
+          }
+          notionDatabases = notionDatabases.filter(x => x.id !== delId);
+          // 若刪除的資料庫為目前顯示，調整 currentDbIndex
+          if (currentDbIndex >= notionDatabases.length) {
+            currentDbIndex = notionDatabases.length - 1;
+          }
+          chrome.storage.local.set({ notionDatabases }, () => {
+            renderCurrentDb();
+          });
+        });
+      });
+    }
+    // 問題區塊 Tooltip
+    const problemBlockP = dbDisplay.querySelector(`#problemBlock_${pageIdInput?.dataset.id}`);
+    if (problemBlockP) {
+      problemBlockP.addEventListener("mouseover", () => {
+        chrome.storage.local.get("notionDatabases", (res) => {
+          const notionDatabases = res.notionDatabases || [];
+          const dbItem = notionDatabases.find(x => x.id === pageIdInput.dataset.id);
+          if (!dbItem || !dbItem.latestStats || !dbItem.latestStats.problemBlockList?.length) return;
+          let tooltip = document.createElement("div");
+          tooltip.id = `problemTooltip_${dbItem.id}`;
+          tooltip.style.position = "absolute";
+          tooltip.style.padding = "8px 12px";
+          tooltip.style.background = "rgba(0, 0, 0, 0.8)";
+          tooltip.style.color = "#fff";
+          tooltip.style.borderRadius = "4px";
+          tooltip.style.fontSize = "14px";
+          tooltip.style.zIndex = "10000";
+          tooltip.innerHTML = dbItem.latestStats.problemBlockList.join("<br>");
+          dbDisplay.appendChild(tooltip);
+          const rect = problemBlockP.getBoundingClientRect();
+          const dispRect = dbDisplay.getBoundingClientRect();
+          tooltip.style.left = (rect.left - dispRect.left) + "px";
+          tooltip.style.top = (rect.bottom - dispRect.top + 5) + "px";
+        });
+      });
+      problemBlockP.addEventListener("mouseout", () => {
+        const tooltip = dbDisplay.querySelector(`#problemTooltip_${pageIdInput?.dataset.id}`);
+        if (tooltip) tooltip.remove();
+      });
+    }
   }
 
-  // 單一資料庫抓取 Notion
-  async function fetchSingleNotion(dbId) {
+  // 更新上一個／下一個按鈕狀態
+  function updateNavButtons(total) {
+    prevDbBtn.disabled = (currentDbIndex <= 0);
+    nextDbBtn.disabled = (currentDbIndex >= total - 1);
+  }
+
+  // ========== 多資料庫操作：新增、刪除全部 ==========
+  addDbBtn.addEventListener("click", () => {
+    chrome.storage.local.get("notionDatabases", (res) => {
+      let notionDatabases = res.notionDatabases || [];
+      notionDatabases.push({
+        id: Date.now().toString(),
+        pageId: "",
+        pageTitle: "",
+        jsonData: {},
+        latestStats: null
+      });
+      currentDbIndex = notionDatabases.length - 1;
+      chrome.storage.local.set({ notionDatabases }, () => {
+        renderCurrentDb();
+      });
+    });
+  });
+  deleteStorageBtn.addEventListener("click", () => {
+    chrome.storage.local.remove(["notionDatabases"], () => {
+      alert("All data was deleted");
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
+      });
+      updateModeDisplay("stopped");
+      currentDbIndex = 0;
+      renderCurrentDb();
+    });
+  });
+
+  // ========== 單一資料庫抓取 Notion、取得 Page Title 與統計 ==========
+  async function fetchSingleNotion(dbId, startTime) {
     return new Promise((resolve) => {
-      chrome.storage.local.get(["notionDatabases", "splitChar"], async (res) => {
+      chrome.storage.local.get(["notionDatabases", "splitChar", "notionToken"], async (res) => {
         let notionDatabases = res.notionDatabases || [];
         const splitChar = res.splitChar || "/";
+        const notionToken = res.notionToken || "";
         const targetDb = notionDatabases.find(x => x.id === dbId);
         if (!targetDb) return resolve(false);
-
         const pageId = targetDb.pageId.trim();
-        const notionToken = targetDb.notionToken.trim();
         if (!pageId || !notionToken) {
           return resolve(false);
         }
         try {
+          // 先取得 Page Title
+          const pageTitle = await fetchPageTitle(pageId, notionToken);
+          targetDb.pageTitle = pageTitle;
+          // 取得 Blocks
           const allBlocks = await fetchAllBlocks(pageId, notionToken);
-          const notionJson = convertBlocksToJson(allBlocks, splitChar);
+          const { notionJson, problemBlockList } = convertBlocksToJson(allBlocks, splitChar);
           targetDb.jsonData = substitutePlaceholders(notionJson);
+          const endTime = performance.now();
+          const runSec = (endTime - startTime) / 1000;
+          targetDb.latestStats = {
+            dataStatus: "Finish",
+            blockCount: Object.keys(notionJson).length,
+            problemCount: problemBlockList.length,
+            problemBlockList,
+            runTime: runSec
+          };
           chrome.storage.local.set({ notionDatabases }, () => {
             resolve(true);
           });
         } catch (error) {
           console.error(error);
-          resolve(false);
+          if (targetDb) {
+            targetDb.latestStats = {
+              dataStatus: "Fail",
+              blockCount: 0,
+              problemCount: 0,
+              problemBlockList: [],
+              runTime: 0
+            };
+            chrome.storage.local.set({ notionDatabases }, () => {
+              resolve(false);
+            });
+          } else {
+            resolve(false);
+          }
         }
       });
     });
   }
 
-  // 拉 Notion Blocks
   async function fetchAllBlocks(pageId, notionToken) {
     let allBlocks = [];
     let hasMore = true;
@@ -234,9 +330,35 @@ document.addEventListener("DOMContentLoaded", () => {
     return allBlocks;
   }
 
-  // 將 blocks 轉成簡單 key => description
+  async function fetchPageTitle(pageId, notionToken) {
+    try {
+      const response = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${notionToken}`,
+          "Notion-Version": "2022-06-28"
+        }
+      });
+      const data = await response.json();
+      if (data.object === "page" && data.properties) {
+        for (const propName in data.properties) {
+          const prop = data.properties[propName];
+          if (prop && prop.type === "title" && Array.isArray(prop.title) && prop.title.length) {
+            return prop.title[0].plain_text || "Untitled Page";
+          }
+        }
+        return "Untitled Page";
+      }
+      return "Unknown Page";
+    } catch (error) {
+      console.error("fetchPageTitle Error:", error);
+      return "Error Fetching Title";
+    }
+  }
+
   function convertBlocksToJson(blocks, splitChar) {
     const notionJson = {};
+    const problemBlockList = [];
     blocks.forEach(block => {
       if (
         block.type === "paragraph" &&
@@ -253,16 +375,16 @@ document.addEventListener("DOMContentLoaded", () => {
           if (!notionJson[key]) {
             notionJson[key] = { description };
           } else {
-            // 重覆的 key 就把描述合併
-            notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>` + description;
+            notionJson[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${description}`;
           }
+        } else {
+          problemBlockList.push(textContent.trim() || "(Empty)");
         }
       }
     });
-    return notionJson;
+    return { notionJson, problemBlockList };
   }
 
-  // 取代 &{key} / ~{key} / @{xxx} 這些占位符
   function substitutePlaceholders(originalJsonData) {
     const jsonData = JSON.parse(JSON.stringify(originalJsonData));
     Object.keys(jsonData).forEach(mainKey => {
@@ -312,43 +434,54 @@ document.addEventListener("DOMContentLoaded", () => {
     return jsonData;
   }
 
-  // ===== 監聽 Highlight Color 變更 =====
-  chrome.storage.local.get(["highlightColor"], (res) => {
-    if (res.highlightColor) {
-      highlightColorInput.value = res.highlightColor;
-    } else {
-      highlightColorInput.value = "#ffff33";
-      chrome.storage.local.set({ highlightColor: "#ffff33" });
-    }
-  });
-  highlightColorInput.addEventListener("change", (e) => {
-    chrome.storage.local.set({ highlightColor: e.target.value }, sendHighlightMessageForAll);
-  });
-
-  // ===== 切換「Highlight / Stop」=====
-  toggleModeBtn.addEventListener("click", () => {
-    if (toggleModeBtn.textContent === "Highlight！") {
-      // 檢查是否有資料
-      chrome.storage.local.get("notionDatabases", (res) => {
-        const notionDatabases = res.notionDatabases || [];
-        let hasData = false;
-        for (const db of notionDatabases) {
-          if (db.jsonData && Object.keys(db.jsonData).length > 0) {
-            hasData = true;
-            break;
-          }
+  function sendHighlightMessageForAll() {
+    chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
+      const notionDatabases = res.notionDatabases || [];
+      const color = res.highlightColor || highlightColorInput.value || "#ffff33";
+      const combined = {};
+      notionDatabases.forEach(db => {
+        if (db.jsonData && typeof db.jsonData === "object") {
+          Object.entries(db.jsonData).forEach(([k, v]) => {
+            combined[k] = v;
+          });
         }
-        if (!hasData) {
-          alert("No data. Please click Refresh on any DB block to load from Notion.");
-          return;
-        }
-        sendHighlightMessageForAll();
-        updateModeDisplay("highlighter");
-        toggleModeBtn.textContent = "Stop";
-        updateBackground(true);
       });
-    } else {
-      // STOP
+      const keyValues = Object.entries(combined).map(([key, value]) => ({ key, value }));
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: "HIGHLIGHT_BATCH",
+            keyValues: keyValues,
+            highlightColor: color
+          });
+        });
+      });
+    });
+  }
+
+  // ========== 控制「Highlight！」／「Stop」按鈕 ==========
+  toggleModeBtn.addEventListener("click", () => {
+    chrome.storage.local.get("notionDatabases", (res) => {
+      const notionDatabases = res.notionDatabases || [];
+      let hasData = false;
+      for (const db of notionDatabases) {
+        if (db.jsonData && Object.keys(db.jsonData).length > 0) {
+          hasData = true;
+          break;
+        }
+      }
+      if (!hasData) {
+        alert("No data. Please click Refresh on the current database to load from Notion.");
+        return;
+      }
+      sendHighlightMessageForAll();
+      updateModeDisplay("highlighter");
+      toggleModeBtn.textContent = "Stop";
+      updateBackground(true);
+    });
+  });
+  toggleModeBtn.addEventListener("click", () => {
+    if (toggleModeBtn.textContent === "Stop") {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
@@ -358,35 +491,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ===== 刪除全部資料 (清空) =====
-  deleteStorageBtn.addEventListener("click", () => {
-    chrome.storage.local.remove(["notionDatabases"], () => {
-      alert("All data was deleted");
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
-      });
-      updateModeDisplay("stopped");
-      renderAllDbs();
-    });
-  });
+  function updateModeDisplay(mode) {
+    currentModeP.textContent = "Current Mode：" + (mode === "highlighter" ? "Highlighting" : "Stop");
+  }
+  function updateBackground(isHighlighting) {
+    document.body.style.background = isHighlighting
+      ? "linear-gradient(120deg, #4A251B 0%, #7F4339 100%)"
+      : "linear-gradient(120deg, rgb(61, 61, 61) 0%, rgb(0, 0, 0) 100%)";
+  }
 
-  // ===== 新增一組 DB =====
-  addDbBtn.addEventListener("click", () => {
-    chrome.storage.local.get("notionDatabases", (res) => {
-      let notionDatabases = res.notionDatabases || [];
-      notionDatabases.push({
-        id: Date.now().toString(),
-        pageId: "",
-        notionToken: "",
-        jsonData: {}
-      });
-      chrome.storage.local.set({ notionDatabases }, () => {
-        renderAllDbs();
-      });
-    });
-  });
-
-  // ===== 監聽來自 contentScript 的完成訊息，用於計時 =====
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "HIGHLIGHT_FINISHED" && isNeedRecordTime) {
       const fetchDuration = fetchTime - processTime;
@@ -398,9 +511,18 @@ document.addEventListener("DOMContentLoaded", () => {
     sendResponse();
   });
 
-  // ===== 初始化 =====
-  renderAllDbs();
-  // 檢查是否已經有資料
+  // ========== 事件：上一個／下一個按鈕 ==========
+  prevDbBtn.addEventListener("click", () => {
+    currentDbIndex--;
+    renderCurrentDb();
+  });
+  nextDbBtn.addEventListener("click", () => {
+    currentDbIndex++;
+    renderCurrentDb();
+  });
+
+  // 初始載入
+  renderCurrentDb();
   chrome.storage.local.get("notionDatabases", (res) => {
     const notionDatabases = res.notionDatabases || [];
     let hasData = false;

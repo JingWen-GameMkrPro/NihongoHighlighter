@@ -29,13 +29,10 @@ function getSharedTooltip() {
 function processLine(line) {
   line = line.replace(/__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
     `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-
   line = line.replace(/__PLACEHOLDER_RED__(.*?)__ENDPLACEHOLDER__/g,
     `<div style="background-color: ${placeholderColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-
   line = line.replace(/__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
     `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-
   if (!line.includes("__PLACEHOLDER_")) {
     line = `<div style="padding:2px 0;">${line}</div>`;
   }
@@ -45,7 +42,6 @@ function processLine(line) {
 function buildTooltipString(keyword, infoData) {
   let html = `<div style="padding:4px 0; margin-bottom:4px; font-weight: bold;">${keyword}</div>`;
   html += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
-
   if (infoData["sub-name"]) {
     html += processLine(infoData["sub-name"]);
   }
@@ -61,7 +57,6 @@ function adjustTooltipPosition() {
   let currentLeft = parseInt(tooltip.style.left, 10) || 0;
   let currentTop = parseInt(tooltip.style.top, 10) || 0;
   const margin = 10;
-
   if (rect.right > window.innerWidth) {
     currentLeft -= (rect.right - window.innerWidth) + margin;
   }
@@ -95,21 +90,16 @@ function escapeRegExp(str) {
 
 function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33") {
   if (!keyValues || keyValues.length === 0) return;
-
   const mapping = {};
   const keys = [];
-
   keyValues.forEach(({ key, value }) => {
     const lowerKey = key.toLowerCase();
     mapping[lowerKey] = { key, infoData: value };
     keys.push(key);
   });
-
-  // 依照長度排序，避免短單字先符合
   keys.sort((a, b) => b.length - a.length);
   const pattern = keys.map(escapeRegExp).join("|");
   const regex = new RegExp(`(${pattern})`, "gi");
-
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: function(node) {
       if (node.parentNode && ["SCRIPT", "STYLE", "IFRAME", "CANVAS", "SVG"].includes(node.parentNode.nodeName)) {
@@ -118,7 +108,6 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
       return NodeFilter.FILTER_ACCEPT;
     }
   });
-
   const matchingNodes = [];
   let currentNode;
   while ((currentNode = walker.nextNode())) {
@@ -126,14 +115,12 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
       matchingNodes.push(currentNode);
     }
   }
-
   matchingNodes.forEach(node => {
     const text = node.nodeValue;
     const frag = document.createDocumentFragment();
     let lastIndex = 0;
     regex.lastIndex = 0;
     let match;
-
     while ((match = regex.exec(text)) !== null) {
       const matchStart = match.index;
       const matchEnd = regex.lastIndex;
@@ -145,7 +132,6 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
       const matchedText = text.slice(matchStart, matchEnd);
       span.textContent = matchedText;
       span.style.backgroundColor = highlightColor;
-
       const lookup = mapping[matchedText.toLowerCase()];
       if (lookup) {
         span.setAttribute("data-key", lookup.key);
@@ -197,10 +183,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function updateHighlightsFromStorage() {
-  // 重新抓取 notionDatabases，將所有 db.jsonData 合併後再 highlight
   chrome.storage.local.get(["notionDatabases", "highlightColor"], (result) => {
     clearHighlight();
-
     const notionDatabases = result.notionDatabases || [];
     const combinedData = {};
     notionDatabases.forEach(db => {
@@ -210,7 +194,6 @@ function updateHighlightsFromStorage() {
         });
       }
     });
-
     const savedColor = result.highlightColor || "#ffff33";
     if (Object.keys(combinedData).length > 0) {
       const keyValues = Object.entries(combinedData).map(([key, value]) => ({ key, value }));
