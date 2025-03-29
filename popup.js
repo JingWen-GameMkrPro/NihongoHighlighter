@@ -398,12 +398,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  const cleanSubName = refObj["sub-name"];
-                  if (cleanSubName) {
-                    return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
-                  } else {
-                    return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
-                  }
+                  return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
                 }
               }
               return refKey;
@@ -413,12 +408,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refObj = originalJsonData[refKey];
                 if (refObj && refObj.description) {
                   const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  const cleanSubName = refObj["sub-name"];
-                  if (cleanSubName) {
-                    return `__PLACEHOLDER_RED__【！】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanSubName}<br>${cleanDesc}__ENDPLACEHOLDER__`;
-                  } else {
-                    return `__PLACEHOLDER_RED__【！】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
-                  }
+                  return `__PLACEHOLDER_RED__【！】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
+                  
                 }
               }
               return refKey;
@@ -434,30 +425,41 @@ document.addEventListener("DOMContentLoaded", () => {
     return jsonData;
   }
 
-  function sendHighlightMessageForAll() {
-    chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
-      const notionDatabases = res.notionDatabases || [];
-      const color = res.highlightColor || highlightColorInput.value || "#ffff33";
-      const combined = {};
-      notionDatabases.forEach(db => {
-        if (db.jsonData && typeof db.jsonData === "object") {
-          Object.entries(db.jsonData).forEach(([k, v]) => {
-            combined[k] = v;
-          });
-        }
-      });
-      const keyValues = Object.entries(combined).map(([key, value]) => ({ key, value }));
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: "HIGHLIGHT_BATCH",
-            keyValues: keyValues,
-            highlightColor: color
+    // ========== 合併所有 DB & 將重複 key 再以分隔線合併，最後發送給 contentScript ==========
+
+    function sendHighlightMessageForAll() {
+      chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
+        const notionDatabases = res.notionDatabases || [];
+        const color = res.highlightColor || highlightColorInput.value || "#ffff33";
+  
+        const finalCombined = {};
+  
+        // 🔴 這裡跨資料庫 key 重複也用分隔線合併
+        notionDatabases.forEach(db => {
+          if (db.jsonData && typeof db.jsonData === "object") {
+            for (const [key, val] of Object.entries(db.jsonData)) {
+              if (!finalCombined[key]) {
+                finalCombined[key] = { description: val.description };
+              } else {
+                finalCombined[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;">${val.description}`;
+              }
+            }
+          }
+        });
+  
+        const keyValues = Object.entries(finalCombined).map(([k, v]) => ({ key: k, value: v }));
+  
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" }, () => {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: "HIGHLIGHT_BATCH",
+              keyValues: keyValues,
+              highlightColor: color
+            });
           });
         });
       });
-    });
-  }
+    }
 
   // ========== 控制「Highlight！」／「Stop」按鈕 ==========
   toggleModeBtn.addEventListener("click", () => {
