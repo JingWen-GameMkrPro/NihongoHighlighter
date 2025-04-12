@@ -45,6 +45,9 @@ class DataManager
         this.allPages = [];
     }
 
+    //Chrome Storage 操作
+
+
 }
 
 class Page
@@ -66,14 +69,14 @@ class Page
 
     getAllWrongBlocks(isCopy)
     {
-        result = this.allBlocks.filter(block => !block.isSuccess())
-        return isCopy = true ? [...result] : result
+        result = this.allBlocks.filter(block => block.isSuccessBlock === false)
+        return isCopy === true ? [...result] : result
     }
 
     getAllSuccessBlocks()
     {
-        result = this.allBlocks.filter(block => block.isSuccess())
-        return isCopy = true ? [...result] : result
+        result = this.allBlocks.filter(block => block.isSuccessBlock === true)
+        return isCopy === true ? [...result] : result
     }
 
 }
@@ -113,3 +116,49 @@ class Block
     }
 
 }
+
+class Note
+{
+    constructor()
+    {
+        this.AllNoteLines = []
+    }
+
+    //可能有多筆資料，根據noteTitle
+    searchReferenceNote(allNotes, noteTitle)
+    {
+        //假設找到一個符合的Note，則必須要請他回傳不包含RefernceNoteLine的版本
+        //Note.returnAllNoteLinesWithoutRefernce()
+
+        //如果有多個則整理成數組回傳
+    }
+
+    returnAllNoteLinesWithoutRefernce()
+    {
+        result = this.AllNoteLines.filter(noteLine => noteLine.Type !== NoteLineType.REFERENCE)
+        return [...result]
+    }
+}
+
+class NoteLine {
+    constructor() 
+    {
+      this.Type = NoteLineType.NONE
+      this.Value = ""
+    }
+
+
+
+}
+
+const NoteLineType =  
+Object.freeze
+(
+    {
+        NONE: 'None',
+        TITLE: 'title',
+        DESCRIPTION: 'Description',
+        REFERENCE: 'Refernce',
+        EXAMPLE: 'Example'
+    }
+);
