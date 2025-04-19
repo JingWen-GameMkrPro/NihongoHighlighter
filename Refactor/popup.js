@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleTokenVisibility.textContent = "👁";
     });
 
+
+    //繼續往下整理
     const toggleModeBtn = document.getElementById("toggleModeBtn");
     const deleteStorageBtn = document.getElementById("deleteStorageBtn");
     const currentModeP = document.getElementById("currentMode");
