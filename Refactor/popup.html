@@ -1,28 +1,227 @@
-<!DOCTYPE html>
-<meta charset="UTF-8">
-<html>
+<html lang="ja">
 <head>
-  <title>我的彈出視窗</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400, initial-scale=1">
+  <title>Knowtion</title>
   <style>
-    body {
-      width: 200px;
-      padding: 10px;
-      font-family: sans-serif;
-    }
-    #message {
-      margin-bottom: 10px;
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 400px;
+      height: 600px;
+      background: linear-gradient(120deg, #4A251B 0%, #7F4339 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       font-weight: bold;
+      color: #F2E6DF;
+      overflow-y: auto;
+    }
+    .container {
+      width: 90%;
+      max-width: 320px;
+      margin: 20px auto;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow:
+        0 0 30px rgba(0, 0, 0, 0.3),
+        0 6px 20px rgba(46, 46, 46, 0.5);
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .container:hover {
+      transform: translateY(-3px);
+      box-shadow:
+        0 0 40px rgba(4, 4, 4, 0.5),
+        0 10px 30px rgba(0,0,0,0.6);
+    }
+    h1 {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: #FDF6F1;
+    }
+    #currentMode {
+      font-size: 16px;
+      text-align: center;
+      color: #FDF6F1;
+      margin: 5px 0;
+    }
+    #title img {
+      width: 28px;
+      height: 28px;
     }
     button {
-      padding: 8px 15px;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #7F4339, #C4816C);
+      color: #fff;
+      font-size: 15px;
+      font-weight: bold;
       cursor: pointer;
+      transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    button:hover {
+      background: linear-gradient(135deg, #C4816C, #7F4339);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .block-area {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      background-color: rgba(255,255,255,0.1);
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    .small-block-area {
+      margin-top: 1px;
+      padding: 1px;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      background-color: rgba(255,255,255,0.1);
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    #tutorial {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #FDF6F1;
+    }
+    /* 單一資料庫顯示區 */
+    #dbDisplay {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      background-color: rgba(255,255,255,0.1);
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .nav-buttons button {
+      width: 48%;
+      text-align: center;
+    }
+    #addDbBtn, #deleteStorageBtn {
+      margin-top: 10px;
+    }
+    .input-container {
+      position: relative;
+      display: inline-block;
+      width: 90%;
+      margin-top: 5px;
+    }
+    .styled-input {
+      width: 100%;
+      padding: 8px 30px 8px 8px;
+      font-size: 14px;
+      color: #3C2A27;
+      background-color: rgba(255,255,255,0.7);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+    }
+    .toggle-visibility {
+      position: absolute;
+      right: 10px;
+      top: 45%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #151718;
+      font-size: 15px;
+    }
+    #tokenHeader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .info-line {
+      font-size: 14px;
+      color: #F2E6DF;
+      margin: 4px 0;
+      text-align: center;
+      cursor: default;
+    }
+    .info-line:hover {
+      text-decoration: none;
+    }
+    /* 資料庫索引指示 */
+    #dbIndexIndicator {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #FDF6F1;
     }
   </style>
 </head>
 <body>
-  <div id="message">來自 popup.js 的訊息將顯示在這裡</div>
-  <button id="changeMessageBtn">點擊改變訊息</button>
-  <button id="sendMessageToBg">發送訊息給背景腳本</button>
+  <div class="container">
+    <h1 id="title"><img src="icon.svg" alt="Icon">Knowtion</h1>
+    <div class="small-block-area">
+      <p id="tutorial">
+        <img src="info.svg" style="width:18px; margin-right: 5px; height:18px;" alt="Info">
+        <a href="https://rocky-allspice-628.notion.site/Knowtion-1bd26f3d13b88138b109e8e48ea56701?pvs=4" target="_blank" style="text-decoration: underline; color: inherit;">Information</a>
+      </p>
+    </div>
+
+    <!-- Card: Token -->
+    <div class="block-area">
+      <div id="tokenHeader">
+        <label style="margin: 0; font-size: 16px;">Notion Token：</label>
+        <p style="color: #FDF6F1;">
+          <input type="checkbox" id="checkbox-isSaveToken"> Save Token
+        </p>
+      </div>
+      <div class="input-container">
+        <input type="password" id="notionToken" placeholder="Enter Notion Token" class="styled-input">
+        <span id="toggleTokenVisibility" class="toggle-visibility">👁</span>
+      </div>
+    </div>
+
+    <!-- Card: Control Panel -->
+    <div class="block-area">
+      <h1 id="currentMode">Current Mode：Stop</h1>
+      <label class="info-line" for="splitChar">Split Character：</label>
+      <input type="text" id="splitChar" value="/" maxlength="1" style="width: 30px; text-align: center;margin-top:10px;">
+      <br><br>
+      <label class="info-line" for="highlightColor">Color：</label>
+      <input type="color" id="highlightColor">
+      <br><br>
+      <button id="toggleModeBtn">Highlight！</button>
+    </div>
+
+    <!-- Card: Database Panel -->
+    <div id="dbDisplay" class="block-area" style="margin-top: 20px;">
+    </div>
+    <div class="nav-buttons">
+      <button id="prevDbBtn">上一個</button>
+      <button id="nextDbBtn">下一個</button>
+    </div>
+    
+    <!-- 資料庫索引指示 -->
+    <p id="dbIndexIndicator"></p>
+    
+    <button id="addDbBtn">＋ 新增一組資料庫</button>
+    <button id="deleteStorageBtn">Delete All Data</button>
+  </div>
+
   <script src="popup.js"></script>
+  <script src="config.js"></script>
 </body>
 </html>
