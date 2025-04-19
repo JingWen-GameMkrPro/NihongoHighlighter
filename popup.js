@@ -465,7 +465,6 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: {
           "Authorization": `Bearer ${notionToken}`,
           "Notion-Version": "2022-06-28",
-          "Content-Type": "application/json"
         }
       });
       const data = await response.json();

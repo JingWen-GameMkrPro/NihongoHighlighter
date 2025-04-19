@@ -1,0 +1,29 @@
+{
+  "name": "Knowtion",
+  "version": "1.0",
+  "manifest_version": 3,
+  "description": "這個插件工具將您的 Notion 筆記與網頁內容無縫連結，當網頁出現您曾記錄的單字時，插件會螢光標記該單字，滑鼠懸浮在該單字將會呈現筆記資訊，讓閱讀外語文章的過程中持續回顧與知識強化。",
+  "permissions": [
+    "storage",
+    "activeTab"  
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Knowtion"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["sound.mp3","*.svg"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+<head>
+  <title>我的彈出視窗</title>
+  <style>
+    body {
+      width: 200px;
+      padding: 10px;
+      font-family: sans-serif;
+    }
+    #message {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    button {
+      padding: 8px 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="message">來自 popup.js 的訊息將顯示在這裡</div>
+  <button id="changeMessageBtn">點擊改變訊息</button>
+  <button id="sendMessageToBg">發送訊息給背景腳本</button>
+  <script src="popup.js"></script>
+</body>
+</html>
