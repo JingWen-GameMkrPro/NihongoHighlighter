@@ -3,55 +3,52 @@ let isNeedRecordTime = 0;
 let fetchTime = 0;
 let currentDbIndex = 0; // 目前顯示的資料庫索引
 
+let tmp;
 document.addEventListener("DOMContentLoaded", () => {
+    //Card: Token
+    const checkboxIsSaveToken = document.getElementById("checkbox-isSaveToken");
+    const inputNotionToken = document.getElementById("input-notionToken");
+    const toggleTokenVisibility = document.getElementById("toggle-tokenVisibility");
+    tmp = dataManagerInstance.getChormeStorageValue(inputNotionToken.id)
+    inputNotionToken.value = tmp || ""
+    checkboxIsSaveToken.checked = !!tmp;
+    checkboxIsSaveToken.addEventListener("change", (e) => {
+        loggerInstance.logLocal();
+        if (e.target.checked) {
+            dataManagerInstance.setChromeStorageValue(inputNotionToken.id, inputNotionToken.value.trim());
+        } else {
+            dataManagerInstance.removeChromeStorageValue(inputNotionToken.id);
+        }
+    });
+    inputNotionToken.addEventListener("change", (e) => {
+        if (checkboxIsSaveToken.checked) {
+            dataManagerInstance.setChromeStorageValue(e.target.id, e.target.value.trim());
+        }
+    });
+    toggleTokenVisibility.addEventListener("click", () => {
+        inputNotionToken.type = inputNotionToken.type === "password" ? "text" : "password";
+        toggleTokenVisibility.textContent = "👁";
+    });
 
-  const isSaveToken = document.getElementById("checkbox-isSaveToken");
+    const toggleModeBtn = document.getElementById("toggleModeBtn");
+    const deleteStorageBtn = document.getElementById("deleteStorageBtn");
+    const currentModeP = document.getElementById("currentMode");
+    const highlightColorInput = document.getElementById("highlightColor");
+    const splitCharInput = document.getElementById("splitChar");
+    const addDbBtn = document.getElementById("addDbBtn");
+
+    // 與 Token 相關 DOM
 
 
-  const toggleModeBtn = document.getElementById("toggleModeBtn");
-  const deleteStorageBtn = document.getElementById("deleteStorageBtn");
-  const currentModeP = document.getElementById("currentMode");
-  const highlightColorInput = document.getElementById("highlightColor");
-  const splitCharInput = document.getElementById("splitChar");
-  const addDbBtn = document.getElementById("addDbBtn");
+    // 單一資料庫顯示區 DOM
+    const dbDisplay = document.getElementById("dbDisplay");
+    const prevDbBtn = document.getElementById("prevDbBtn");
+    const nextDbBtn = document.getElementById("nextDbBtn");
 
-  // 與 Token 相關 DOM
-  const notionTokenInput = document.getElementById("notionToken");
-  const toggleTokenVisibility = document.getElementById("toggleTokenVisibility");
 
-  // 單一資料庫顯示區 DOM
-  const dbDisplay = document.getElementById("dbDisplay");
-  const prevDbBtn = document.getElementById("prevDbBtn");
-  const nextDbBtn = document.getElementById("nextDbBtn");
-  //const dbIndexIndicator = document.getElementById("dbIndexIndicator");
 
-// ========== 初始化：Token、SplitChar、HighlightColor ==========
 
-chrome.storage.local.get("notionToken", (res) => {
-    if (res.notionToken) {
-        notionTokenInput.value = res.notionToken;
-        isSaveToken.checked = true;
-    } else {
-        notionTokenInput.value = "";
-        isSaveToken.checked = false;
-    }
-});
-isSaveToken.addEventListener("change", (e) => {
-    if (e.target.checked) {
-    chrome.storage.local.set({ notionToken: notionTokenInput.value.trim() });
-    } else {
-    chrome.storage.local.remove("notionToken");
-    }
-});
-notionTokenInput.addEventListener("change", (e) => {
-    if (isSaveToken.checked) {
-    chrome.storage.local.set({ notionToken: e.target.value.trim() });
-    }
-});
-toggleTokenVisibility.addEventListener("click", () => {
-    notionTokenInput.type = notionTokenInput.type === "password" ? "text" : "password";
-    toggleTokenVisibility.textContent = "👁";
-});
+
 chrome.storage.local.get(["splitChar"], (res) => {
     if (res.splitChar) {
     splitCharInput.value = res.splitChar;
@@ -690,6 +687,15 @@ class Logger
     {
         console.log(msg);
     }
+
+    logLocal()
+    {
+        chrome.storage.local.get(null, function(items) {
+            console.log("Chrome Storage Local 内容:", items);
+            // 你可以在这里进一步处理这些数据，例如显示在你的扩展界面上
+          });
+    }
+
 }
 
 class DataManager
@@ -704,10 +710,7 @@ class DataManager
 
         }
     }
-    log()
-    {
-        loggerInstance.log("awdawdaw");
-    }
+
 
     getChormeStorageValue(key){
         chrome.storage.local.get(key, (res) => {
@@ -720,7 +723,7 @@ class DataManager
     }
 
     setChromeStorageValue(key, value){
-        chrome.storage.local.set({ key: value });
+        chrome.storage.local.set({ [key]: value });
     }
     
     removeChromeStorageValue(key){
