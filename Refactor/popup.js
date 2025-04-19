@@ -675,6 +675,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
+class Logger
+{
+    constructor()
+    {
+        if(!Logger.instance)
+        {
+            Logger.instance = this;
+        }
+    }
+
+    log(msg)
+    {
+        console.log(msg);
+    }
+}
+
 class DataManager
 {
     constructor()
@@ -689,7 +705,7 @@ class DataManager
     }
     log()
     {
-        console.log('awdwwdadawdawdawdadawdadadadw');
+        loggerInstance.log("awdawdaw");
     }
 
     pushPageToChrome(page)
@@ -997,3 +1013,4 @@ class NoteLine
     }
 }
 const dataManagerInstance = new DataManager();
+const loggerInstance = new Logger();
