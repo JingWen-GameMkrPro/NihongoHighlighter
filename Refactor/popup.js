@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleTokenVisibility = document.getElementById(
     "toggle-tokenVisibility"
   );
-  // Try get save token
+  // Initial
   dataManagerInstance.asyncGetChormeStorageValue(
     inputNotionToken.id,
     (value) => {
@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
       checkboxIsSaveToken.checked = !!value;
     }
   );
+  //Bind
   checkboxIsSaveToken.addEventListener("change", (e) => {
     if (e.target.checked) {
       dataManagerInstance.setChromeStorageValue(
@@ -45,46 +46,61 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleTokenVisibility.textContent = "👁";
   });
 
-  //繼續往下整理
-  const toggleModeBtn = document.getElementById("toggleModeBtn");
-  const deleteStorageBtn = document.getElementById("deleteStorageBtn");
-  const currentModeP = document.getElementById("currentMode");
-  const highlightColorInput = document.getElementById("highlightColor");
-  const splitCharInput = document.getElementById("splitChar");
-  const addDbBtn = document.getElementById("addDbBtn");
-
-  // 與 Token 相關 DOM
-
-  // 單一資料庫顯示區 DOM
-  const dbDisplay = document.getElementById("dbDisplay");
-  const prevDbBtn = document.getElementById("prevDbBtn");
-  const nextDbBtn = document.getElementById("nextDbBtn");
+  // Card: Control Panel
+  const textCurrentMode = document.getElementById("text-currentMode");
+  const inputSplitChar = document.getElementById("input-splitChar");
+  const inputHighlightColor = document.getElementById("input-highlightColor");
+  const buttonExchangeMode = document.getElementById("button-exchangeMode");
+  // Initial
+  dataManagerInstance.asyncGetChormeStorageValue(
+    textCurrentMode.id,
+    (value) => {
+      if (value == null) {
+        // Default: UNHIGHLIGHT
+        dataManagerInstance.setChromeStorageValue(
+          textCurrentMode.id,
+          DataManager.ViewMode.UNHIGHLIGHT
+        );
+      }
+      // View inputNotionToken
+      textCurrentMode.value = value || DataManager.ViewMode.UNHIGHLIGHT;
+    }
+  );
 
   chrome.storage.local.get(["splitChar"], (res) => {
     if (res.splitChar) {
-      splitCharInput.value = res.splitChar;
+      inputSplitChar.value = res.splitChar;
     } else {
-      splitCharInput.value = "/";
+      inputSplitChar.value = "/";
       chrome.storage.local.set({ splitChar: "/" });
     }
   });
-  splitCharInput.addEventListener("change", (e) => {
+  inputSplitChar.addEventListener("change", (e) => {
     chrome.storage.local.set({ splitChar: e.target.value });
   });
   chrome.storage.local.get(["highlightColor"], (res) => {
     if (res.highlightColor) {
-      highlightColorInput.value = res.highlightColor;
+      inputHighlightColor.value = res.highlightColor;
     } else {
-      highlightColorInput.value = "#ffff33";
+      inputHighlightColor.value = "#ffff33";
       chrome.storage.local.set({ highlightColor: "#ffff33" });
     }
   });
-  highlightColorInput.addEventListener("change", (e) => {
+  inputHighlightColor.addEventListener("change", (e) => {
     chrome.storage.local.set(
       { highlightColor: e.target.value },
       sendHighlightMessageForAll
     );
   });
+
+  //繼續往下整理
+  const addDbBtn = document.getElementById("addDbBtn");
+  const deleteStorageBtn = document.getElementById("deleteStorageBtn");
+  // 單一資料庫顯示區 DOM
+  const dbDisplay = document.getElementById("dbDisplay");
+  const prevDbBtn = document.getElementById("prevDbBtn");
+  const nextDbBtn = document.getElementById("nextDbBtn");
+
   // ========== 多資料庫操作：新增、刪除全部 ==========
   addDbBtn.addEventListener("click", () => {
     chrome.storage.local.get("notionDatabases", (res) => {
@@ -114,8 +130,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   // ========== 「Highlight！」／「Stop」按鈕 ==========
-  toggleModeBtn.addEventListener("click", () => {
-    if (toggleModeBtn.textContent === "Highlight！") {
+  buttonExchangeMode.addEventListener("click", () => {
+    if (buttonExchangeMode.textContent === "Highlight！") {
       chrome.storage.local.get("notionDatabases", (res) => {
         const notionDatabases = res.notionDatabases || [];
         let hasData = false;
@@ -133,7 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         sendHighlightMessageForAll();
         updateModeDisplay("highlighter");
-        toggleModeBtn.textContent = "Stop";
+        buttonExchangeMode.textContent = "Stop";
         updateBackground(true);
       });
     } else {
@@ -141,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
       });
       updateModeDisplay("stopped");
-      toggleModeBtn.textContent = "Highlight！";
+      buttonExchangeMode.textContent = "Highlight！";
       updateBackground(false);
     }
   });
@@ -651,7 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
       const notionDatabases = res.notionDatabases || [];
       const color =
-        res.highlightColor || highlightColorInput.value || "#ffff33";
+        res.highlightColor || inputHighlightColor.value || "#ffff33";
       const finalCombined = {};
       // 跨資料庫重複 key 用分隔線合併，且前面標示來源（以灰色小字顯示）
       notionDatabases.forEach((db) => {
@@ -687,7 +703,7 @@ ${val.description}`;
   }
 
   function updateModeDisplay(mode) {
-    currentModeP.textContent =
+    textCurrentMode.textContent =
       "Current Mode：" + (mode === "highlighter" ? "Highlighting" : "Stop");
   }
   function updateBackground(isHighlighting) {
@@ -722,11 +738,11 @@ ${val.description}`;
     }
     renderCurrentDb();
     if (hasData) {
-      toggleModeBtn.textContent = "Stop";
+      buttonExchangeMode.textContent = "Stop";
       updateModeDisplay("highlighter");
       updateBackground(true);
     } else {
-      toggleModeBtn.textContent = "Highlight！";
+      buttonExchangeMode.textContent = "Highlight！";
       updateModeDisplay("stopped");
       updateBackground(false);
     }
@@ -781,6 +797,10 @@ class DataManager {
       this.allNotionPages = [];
     }
   }
+  static ViewMode = Object.freeze({
+    UNHIGHLIGHT: "UnHighlight",
+    HIGHLIGHT: "Highlight",
+  });
 
   asyncGetChormeStorageValue(key, callback) {
     chrome.storage.local.get([key], (res) => {
@@ -1063,5 +1083,41 @@ class NoteLine {
     this.subContent = subContent;
   }
 }
+
+class EventManager {
+  static EventType = Object.freeze({
+    VIEWMODECHANGE: "ViewModeChange",
+  });
+
+  constructor() {
+    this.subscribers = {};
+  }
+
+  subscribe(eventName, callback) {
+    if (!this.subscribers[eventName]) {
+      this.subscribers[eventName] = [];
+    }
+    this.subscribers[eventName].push(callback);
+  }
+
+  unsubscribe(eventName, callback) {
+    if (this.subscribers[eventName]) {
+      this.subscribers[eventName] = this.subscribers[eventName].filter(
+        (cb) => cb !== callback
+      );
+    }
+  }
+
+  publish(eventName, data) {
+    if (this.subscribers[eventName]) {
+      this.subscribers[eventName].forEach((callback) => {
+        callback(data);
+      });
+    }
+  }
+}
+
+// 創建一個全局的事件總線實例
+const eventManager = new EventManager();
 const dataManagerInstance = new DataManager();
 const loggerInstance = new Logger();
