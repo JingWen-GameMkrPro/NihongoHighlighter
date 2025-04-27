@@ -133,6 +133,14 @@ document.addEventListener("DOMContentLoaded", () => {
     viewModelInstance.exchangeMode();
   });
 
+  //繼續，流程如下：
+  //Model新增新的資料
+  //ViewModel關注訂閱
+  //View: pop.js
+  //Initial
+  //Subscribe
+  //Input
+
   // dataManagerInstance.asyncGetChormeStorageValue(
   //   textCurrentMode.id,
   //   (value) => {
