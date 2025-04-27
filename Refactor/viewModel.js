@@ -23,6 +23,10 @@ class viewModel {
     this._model.subscribe(model.DataType.HIGHLIGHT_COLOR, (newValue) => {
       this._notify(model.DataType.HIGHLIGHT_COLOR, newValue);
     });
+
+    this._model.subscribe(model.DataType.IS_HIGHLIGHT_MODE, (newValue) => {
+      this._notify(model.DataType.IS_HIGHLIGHT_MODE, newValue);
+    });
   }
 
   setData(dataType, value) {
@@ -60,6 +64,16 @@ class viewModel {
         callback(data);
       });
     }
+  }
+
+  exchangeMode() {
+    this._model.getData(model.DataType.IS_HIGHLIGHT_MODE, (value) => {
+      if (value === true) {
+        this._model.setData(model.DataType.IS_HIGHLIGHT_MODE, false);
+      } else {
+        this._model.setData(model.DataType.IS_HIGHLIGHT_MODE, true);
+      }
+    });
   }
 }
 const viewModelInstance = new viewModel(modelInstance);

@@ -3,6 +3,7 @@ let isNeedRecordTime = 0;
 let fetchTime = 0;
 let currentDbIndex = 0; // 目前顯示的資料庫索引
 let tmp;
+
 document.addEventListener("DOMContentLoaded", () => {
   //Card: Token
   const checkboxIsSaveToken = document.getElementById("checkbox-isSaveToken");
@@ -99,9 +100,39 @@ document.addEventListener("DOMContentLoaded", () => {
   viewModelInstance.subscribe(model.DataType.HIGHLIGHT_COLOR, (newValue) => {
     inputHighlightColor.value = newValue;
   });
+
+  //Input
   inputHighlightColor.addEventListener("change", (e) => {
     viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, e.target.value);
   });
+
+  //Initial
+  viewModelInstance.getData(model.DataType.IS_HIGHLIGHT_MODE, (value) => {
+    if (value) {
+      if (value === true) {
+        textCurrentMode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
+      } else {
+        textCurrentMode.textContent = model.DisplayText.TITLE_MODE_UNHIGHLIGHT;
+      }
+    } else {
+      viewModelInstance.setData(model.DataType.IS_HIGHLIGHT_MODE, true);
+    }
+  });
+
+  //Subscribe
+  viewModelInstance.subscribe(model.DataType.IS_HIGHLIGHT_MODE, (newValue) => {
+    if (newValue == true) {
+      textCurrentMode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
+    } else {
+      textCurrentMode.textContent = model.DisplayText.TITLE_MODE_UNHIGHLIGHT;
+    }
+  });
+
+  // Input，讓viewmodel知道，其他不用管，
+  buttonExchangeMode.addEventListener("click", () => {
+    viewModelInstance.exchangeMode();
+  });
+
   // dataManagerInstance.asyncGetChormeStorageValue(
   //   textCurrentMode.id,
   //   (value) => {
@@ -116,14 +147,6 @@ document.addEventListener("DOMContentLoaded", () => {
   //     textCurrentMode.value = value || DataManager.ViewMode.UNHIGHLIGHT;
   //   }
   // );
-  // chrome.storage.local.get(["highlightColor"], (res) => {
-  //   if (res.highlightColor) {
-  //     inputHighlightColor.value = res.highlightColor;
-  //   } else {
-  //     inputHighlightColor.value = "#ffff33";
-  //     chrome.storage.local.set({ highlightColor: "#ffff33" });
-  //   }
-  // });
 
   //   //繼續往下整理
   //   const addDbBtn = document.getElementById("addDbBtn");

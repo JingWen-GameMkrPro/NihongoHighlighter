@@ -6,9 +6,14 @@ class model {
   //所有資料
   static DataType = Object.freeze({
     TOKEN: "Token",
-    MODE: "Mode",
+    IS_HIGHLIGHT_MODE: "IsHighlightMode",
     SPLIT_CHAR: "SplitChar",
     HIGHLIGHT_COLOR: "HighlightColor",
+  });
+
+  static DisplayText = Object.freeze({
+    TITLE_MODE_HIGHLIGHT: "Mode: Highlight Mode",
+    TITLE_MODE_UNHIGHLIGHT: "Mode: Unhighlight Mode",
   });
 
   setData(dataType, value) {
