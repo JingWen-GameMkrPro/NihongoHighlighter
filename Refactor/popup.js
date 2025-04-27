@@ -10,12 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleTokenVisibility = document.getElementById(
     "toggle-tokenVisibility"
   );
-  // dataManagerInstance.asyncGetChormeStorageValue(
-  //   inputNotionToken.id,
-  //   (value) => {
-
-  //   }
-  // );
   //Initial
   viewModelInstance.getData(model.DataType.TOKEN, (value) => {
     // View inputNotionToken
@@ -24,18 +18,19 @@ document.addEventListener("DOMContentLoaded", () => {
     checkboxIsSaveToken.checked = !!value;
   });
 
+  //Subscribe
   function updateToken(newValue) {
     inputNotionToken.value = newValue || "";
     // checkboxIsSaveToken.checked = !!newValue;
   }
   //View想關注...資料，資料變化就執行...
-  viewModelInstance.subcribe(model.DataType.TOKEN, updateToken);
+  viewModelInstance.subscribe(model.DataType.TOKEN, updateToken);
 
-  //Bind
+  //UserInput
   checkboxIsSaveToken.addEventListener("change", (e) => {
     if (e.target.checked) {
       // 重新訂閱
-      viewModelInstance.subcribe(model.DataType.TOKEN, updateToken);
+      viewModelInstance.subscribe(model.DataType.TOKEN, updateToken);
       // 設定資料
       viewModelInstance.setData(
         model.DataType.TOKEN,
@@ -66,52 +61,69 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleTokenVisibility.textContent = "👁";
   });
 
-  //   // Card: Control Panel
-  //   const textCurrentMode = document.getElementById("text-currentMode");
-  //   const inputSplitChar = document.getElementById("input-splitChar");
-  //   const inputHighlightColor = document.getElementById("input-highlightColor");
-  //   const buttonExchangeMode = document.getElementById("button-exchangeMode");
-  //   // Initial
-  //   dataManagerInstance.asyncGetChormeStorageValue(
-  //     textCurrentMode.id,
-  //     (value) => {
-  //       if (value == null) {
-  //         // Default: UNHIGHLIGHT
-  //         dataManagerInstance.setChromeStorageValue(
-  //           textCurrentMode.id,
-  //           DataManager.ViewMode.UNHIGHLIGHT
-  //         );
-  //       }
-  //       // View inputNotionToken
-  //       textCurrentMode.value = value || DataManager.ViewMode.UNHIGHLIGHT;
-  //     }
-  //   );
+  // Card: Control Panel
+  const textCurrentMode = document.getElementById("text-currentMode");
+  const inputSplitChar = document.getElementById("input-splitChar");
+  const inputHighlightColor = document.getElementById("input-highlightColor");
+  const buttonExchangeMode = document.getElementById("button-exchangeMode");
 
-  //   chrome.storage.local.get(["splitChar"], (res) => {
-  //     if (res.splitChar) {
-  //       inputSplitChar.value = res.splitChar;
-  //     } else {
-  //       inputSplitChar.value = "/";
-  //       chrome.storage.local.set({ splitChar: "/" });
+  // Initial
+  viewModelInstance.getData(model.DataType.SPLIT_CHAR, (value) => {
+    if (value) {
+      inputSplitChar.value = value;
+    } else {
+      viewModelInstance.setData(model.DataType.SPLIT_CHAR, "/"); //Default
+    }
+  });
+
+  //Subscribe
+  viewModelInstance.subscribe(model.DataType.SPLIT_CHAR, (newValue) => {
+    inputSplitChar.value = newValue;
+  });
+
+  //Input
+  inputSplitChar.addEventListener("change", (e) => {
+    viewModelInstance.setData(model.DataType.SPLIT_CHAR, e.target.value);
+  });
+
+  //Initial
+  viewModelInstance.getData(model.DataType.HIGHLIGHT_COLOR, (value) => {
+    if (value) {
+      inputHighlightColor.value = value;
+    } else {
+      viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, "#ffff33"); //Default
+    }
+  });
+
+  //Subscribe
+  viewModelInstance.subscribe(model.DataType.HIGHLIGHT_COLOR, (newValue) => {
+    inputHighlightColor.value = newValue;
+  });
+  inputHighlightColor.addEventListener("change", (e) => {
+    viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, e.target.value);
+  });
+  // dataManagerInstance.asyncGetChormeStorageValue(
+  //   textCurrentMode.id,
+  //   (value) => {
+  //     if (value == null) {
+  //       // Default: UNHIGHLIGHT
+  //       dataManagerInstance.setChromeStorageValue(
+  //         textCurrentMode.id,
+  //         DataManager.ViewMode.UNHIGHLIGHT
+  //       );
   //     }
-  //   });
-  //   inputSplitChar.addEventListener("change", (e) => {
-  //     chrome.storage.local.set({ splitChar: e.target.value });
-  //   });
-  //   chrome.storage.local.get(["highlightColor"], (res) => {
-  //     if (res.highlightColor) {
-  //       inputHighlightColor.value = res.highlightColor;
-  //     } else {
-  //       inputHighlightColor.value = "#ffff33";
-  //       chrome.storage.local.set({ highlightColor: "#ffff33" });
-  //     }
-  //   });
-  //   inputHighlightColor.addEventListener("change", (e) => {
-  //     chrome.storage.local.set(
-  //       { highlightColor: e.target.value },
-  //       sendHighlightMessageForAll
-  //     );
-  //   });
+  //     // View inputNotionToken
+  //     textCurrentMode.value = value || DataManager.ViewMode.UNHIGHLIGHT;
+  //   }
+  // );
+  // chrome.storage.local.get(["highlightColor"], (res) => {
+  //   if (res.highlightColor) {
+  //     inputHighlightColor.value = res.highlightColor;
+  //   } else {
+  //     inputHighlightColor.value = "#ffff33";
+  //     chrome.storage.local.set({ highlightColor: "#ffff33" });
+  //   }
+  // });
 
   //   //繼續往下整理
   //   const addDbBtn = document.getElementById("addDbBtn");

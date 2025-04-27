@@ -11,9 +11,17 @@ class viewModel {
     this._init();
   }
   _init() {
-    this._model.subcribe(model.DataType.TOKEN, (newValue) => {
+    this._model.subscribe(model.DataType.TOKEN, (newValue) => {
       //this._datas[model.DataType.TOKEN] = newValue; //有必要存在?
       this._notify(model.DataType.TOKEN, newValue);
+    });
+
+    this._model.subscribe(model.DataType.SPLIT_CHAR, (newValue) => {
+      this._notify(model.DataType.SPLIT_CHAR, newValue);
+    });
+
+    this._model.subscribe(model.DataType.HIGHLIGHT_COLOR, (newValue) => {
+      this._notify(model.DataType.HIGHLIGHT_COLOR, newValue);
     });
   }
 
@@ -29,7 +37,7 @@ class viewModel {
     chrome.storage.local.remove(dataType);
   }
 
-  subcribe(dataType, callback) {
+  subscribe(dataType, callback) {
     if (!this._subscribers[dataType]) {
       this._subscribers[dataType] = [];
     }

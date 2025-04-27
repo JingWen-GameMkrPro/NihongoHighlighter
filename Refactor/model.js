@@ -6,15 +6,14 @@ class model {
   //所有資料
   static DataType = Object.freeze({
     TOKEN: "Token",
+    MODE: "Mode",
+    SPLIT_CHAR: "SplitChar",
+    HIGHLIGHT_COLOR: "HighlightColor",
   });
 
   setData(dataType, value) {
-    chrome.storage.local.set({ [dataType]: value }, (res) => {
-      if (res[key]) {
-        this._notify(dataType, res[key]);
-      } else {
-        callback(null);
-      }
+    chrome.storage.local.set({ [dataType]: value }, () => {
+      this._notify(dataType, value);
     });
   }
 
@@ -28,7 +27,7 @@ class model {
     });
   }
 
-  subcribe(dataType, callback) {
+  subscribe(dataType, callback) {
     if (!this._subscribers[dataType]) {
       this._subscribers[dataType] = [];
     }
