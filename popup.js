@@ -267,56 +267,188 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ========== 單一資料庫抓取 Notion 與更新 Page Title、統計 ==========
   async function fetchSingleNotion(dbId, startTime) {
     return new Promise((resolve) => {
-      chrome.storage.local.get(["notionDatabases", "splitChar", "notionToken"], async (res) => {
-        let notionDatabases = res.notionDatabases || [];
-        const splitChar = res.splitChar || "/";
-        const notionToken = res.notionToken || "";
-        const targetDb = notionDatabases.find(x => x.id === dbId);
-        if (!targetDb) return resolve(false);
-        const pageId = targetDb.pageId.trim();
-        if (!pageId || !notionToken) {
-          return resolve(false);
-        }
-        try {
-          const pageTitle = await fetchPageTitle(pageId, notionToken);
-          targetDb.pageTitle = pageTitle;
-          const allBlocks = await fetchAllBlocks(pageId, notionToken);
-          const { notionJson, problemBlockList } = convertBlocksToJson(allBlocks, splitChar);
-          targetDb.jsonData = substitutePlaceholders(notionJson);
-          const endTime = performance.now();
-          const runSec = (endTime - startTime) / 1000;
-          targetDb.latestStats = {
-            dataStatus: "Finish",
-            blockCount: Object.keys(notionJson).length,
-            problemCount: problemBlockList.length,
-            problemBlockList,
-            runTime: runSec
-          };
-          chrome.storage.local.set({ notionDatabases }, () => {
-            resolve(true);
-          });
-        } catch (error) {
-          console.error(error);
-          if (targetDb) {
+      chrome.storage.local.get(
+        ["notionDatabases", "splitChar", "notionToken", "originalJsonData"], // 增加 originalJsonData 的讀取
+        async (res) => {
+          let notionDatabases = res.notionDatabases || [];
+          const splitChar = res.splitChar || "/";
+          const notionToken = res.notionToken || "";
+          const targetDb = notionDatabases.find((x) => x.id === dbId);
+          if (!targetDb) return resolve(false);
+          const pageId = targetDb.pageId.trim();
+          if (!pageId || !notionToken) {
+            return resolve(false);
+          }
+  
+          try {
+            const pageTitle = await fetchPageTitle(pageId, notionToken);
+            targetDb.pageTitle = pageTitle;
+            const allBlocks = await fetchAllBlocks(pageId, notionToken);
+            const { notionJson, problemBlockList } = convertBlocksToJson(
+              allBlocks,
+              splitChar
+            );
+  
+            // 儲存原始 JSON 數據
+            targetDb.originalJsonData = JSON.parse(JSON.stringify(notionJson)); // 深拷貝一份
+            //chrome.storage.local.set({originalJsonData: notionJson})
+  
+            // 替換佔位符，並儲存轉換後的數據
+            targetDb.jsonData = substitutePlaceholders(
+              notionJson,
+              notionDatabases.map((db) => db.originalJsonData || {})
+            );
+  
+            const endTime = performance.now();
+            const runSec = (endTime - startTime) / 1000;
             targetDb.latestStats = {
-              dataStatus: "Fail",
-              blockCount: 0,
-              problemCount: 0,
-              problemBlockList: [],
-              runTime: 0
+              dataStatus: "Finish",
+              blockCount: Object.keys(notionJson).length,
+              problemCount: problemBlockList.length,
+              problemBlockList,
+              runTime: runSec,
             };
-            chrome.storage.local.set({ notionDatabases }, () => {
-              resolve(false);
+  
+            //   const allOriginalJsonData = notionDatabases.map(db => db.originalJsonData || {});
+            //   notionDatabases.forEach(db => {
+            //     if (db.originalJsonData) {
+            //       db.jsonData = substitutePlaceholders(db.originalJsonData, allOriginalJsonData);
+            //     }
+            //   });
+  
+            //   chrome.storage.local.set({ notionDatabases }, () => {
+            //     resolve(true);
+            //   });
+            // });
+  
+            // 重新替換所有資料庫的佔位符 (包含剛剛新增的)
+            const allOriginalJsonData = notionDatabases.map(
+              (db) => db.originalJsonData || {}
+            );
+            notionDatabases.forEach((db) => {
+              if (db.originalJsonData) {
+                db.jsonData = substitutePlaceholders(
+                  JSON.parse(JSON.stringify(db.originalJsonData)),
+                  allOriginalJsonData
+                ); // 確保每次都用原始數據替換
+              }
             });
-          } else {
-            resolve(false);
+  
+            chrome.storage.local.set({ notionDatabases }, () => {
+              resolve(true);
+            });
+          } catch (error) {
+            console.error(error);
+            if (targetDb) {
+              targetDb.latestStats = {
+                dataStatus: "Fail",
+                blockCount: 0,
+                problemCount: 0,
+                problemBlockList: [],
+                runTime: 0,
+              };
+              chrome.storage.local.set({ notionDatabases }, () => {
+                resolve(false);
+              });
+            } else {
+              resolve(false);
+            }
           }
         }
-      });
+      );
     });
+  }
+  function substitutePlaceholders(currentJson, allOriginalJsonData) {
+    const finalOriginalJsonData = {}; // 修改為累加物件
+    allOriginalJsonData.forEach(dbData => { // 遍歷每個資料庫的原始資料
+      if (dbData) {
+        Object.keys(dbData).forEach(key => {
+          if (!finalOriginalJsonData[key]) {
+            finalOriginalJsonData[key] = []; // 初始化為陣列
+          }
+          finalOriginalJsonData[key].push(dbData[key]); // 將資料庫內容放入陣列
+        });
+      }
+    });
+  
+    const jsonData = JSON.parse(JSON.stringify(currentJson));
+  
+    Object.keys(jsonData).forEach((mainKey) => {
+      const obj = jsonData[mainKey];
+      if (typeof obj === "object" && obj !== null) {
+        Object.keys(obj).forEach((prop) => {
+          let text = obj[prop];
+          if (typeof text === "string") {
+            text = text.replace(/\&\{([^}]+)\}/g, (match, refKey) => {
+              let foundValues = [];
+              let isFirst = true;
+              if (finalOriginalJsonData && finalOriginalJsonData.hasOwnProperty(refKey)) {
+                finalOriginalJsonData[refKey].forEach(refObj => { // 遍歷陣列
+                  if (refObj && refObj.description) {
+                    const cleanDesc = refObj.description
+                      .replace(/\&\{[^}]+\}/g, "")
+                      .replace(/\~\{[^}]+\}/g, "");
+                    if(isFirst)
+                    {
+                      foundValues.push('\n');
+                      isFirst = false;
+                    }
+                    foundValues.push(
+                      `<span style="color: gray; font-size: 10px;">From: ${getDbTitleByKey(allOriginalJsonData, refKey)}</span>__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`
+                    );
+                  }
+                });
+              }
+              return foundValues.length > 0 ? foundValues.join("") : refKey; // 使用換行符分隔
+            });
+  
+            text = text.replace(/\~\{([^}]+)\}/g, (match, refKey) => {
+              let foundValues = [];
+              let isFirst = true;
+              if (finalOriginalJsonData && finalOriginalJsonData.hasOwnProperty(refKey)) {
+                finalOriginalJsonData[refKey].forEach(refObj => { // 遍歷陣列
+                  if (refObj && refObj.description) {
+                    const cleanDesc = refObj.description
+                      .replace(/\&\{[^}]+\}/g, "")
+                      .replace(/\~\{[^}]+\}/g, "");
+                    if(isFirst)
+                    {
+                      foundValues.push('\n');
+                      isFirst = false;
+                    }
+                    foundValues.push(
+                      `<span style="color: gray; font-size: 10px;">From: ${getDbTitleByKey(allOriginalJsonData, refKey)}</span>__PLACEHOLDER_RED__【！】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`
+                    );
+                  }
+                });
+              }
+              return foundValues.length > 0 ? foundValues.join("") : refKey; // 使用換行符分隔
+            });
+  
+            text = text.replace(/\@\{([^}]+)\}/g, (match, content) => {
+              return `__PLACEHOLDER_BLUE__【e.g.】: ${content}__ENDPLACEHOLDER__`;
+            });
+  
+            obj[prop] = text;
+          }
+        });
+      }
+    });
+  
+    return jsonData;
+  }
+  
+  function getDbTitleByKey(allOriginalJsonData, key) {
+    for (const dbData of allOriginalJsonData) {
+      if (dbData && dbData[key]) {
+        // 在這裡，我們假設每個 dbData 物件都有一個名為 'pageTitle' 的屬性
+        // 如果您的 dbData 物件結構不同，您需要相應地調整這個部分
+        return dbData[key].pageTitle || "Unknown Database";
+      }
+    }
+    return "Unknown Database";
   }
 
   async function fetchAllBlocks(pageId, notionToken) {
@@ -333,7 +465,6 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: {
           "Authorization": `Bearer ${notionToken}`,
           "Notion-Version": "2022-06-28",
-          "Content-Type": "application/json"
         }
       });
       const data = await response.json();
@@ -401,44 +532,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return { notionJson, problemBlockList };
   }
 
-  function substitutePlaceholders(originalJsonData) {
-    const jsonData = JSON.parse(JSON.stringify(originalJsonData));
-    Object.keys(jsonData).forEach(mainKey => {
-      const obj = jsonData[mainKey];
-      if (typeof obj === "object" && obj !== null) {
-        Object.keys(obj).forEach(prop => {
-          let text = obj[prop];
-          if (typeof text === "string") {
-            text = text.replace(/\&\{([^}]+)\}/g, (match, refKey) => {
-              if (originalJsonData.hasOwnProperty(refKey)) {
-                const refObj = originalJsonData[refKey];
-                if (refObj && refObj.description) {
-                  const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  return `__PLACEHOLDER_GREEN__【※】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
-                }
-              }
-              return refKey;
-            });
-            text = text.replace(/\~\{([^}]+)\}/g, (match, refKey) => {
-              if (originalJsonData.hasOwnProperty(refKey)) {
-                const refObj = originalJsonData[refKey];
-                if (refObj && refObj.description) {
-                  const cleanDesc = refObj.description.replace(/\&\{[^}]+\}/g, "").replace(/\~\{[^}]+\}/g, "");
-                  return `__PLACEHOLDER_RED__【！】: ${refKey}<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>${cleanDesc}__ENDPLACEHOLDER__`;
-                }
-              }
-              return refKey;
-            });
-            text = text.replace(/\@\{([^}]+)\}/g, (match, content) => {
-              return `__PLACEHOLDER_BLUE__【e.g.】: ${content}__ENDPLACEHOLDER__`;
-            });
-            obj[prop] = text;
-          }
-        });
-      }
-    });
-    return jsonData;
-  }
   function sendHighlightMessageForAll() {
     chrome.storage.local.get(["notionDatabases", "highlightColor"], (res) => {
       const notionDatabases = res.notionDatabases || [];
