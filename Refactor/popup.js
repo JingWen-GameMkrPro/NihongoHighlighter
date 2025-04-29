@@ -137,14 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
     viewModelInstance.exchangeMode();
   });
 
-  //繼續，流程如下：
-  //Model新增新的資料
-  //ViewModel關注訂閱
-  //View: pop.js
-  //Initial
-  //Subscribe
-  //Input
-
   //Test
   const buttonDebug = document.getElementById("button-debug");
   buttonDebug.addEventListener("click", () => {
@@ -197,6 +189,15 @@ document.addEventListener("DOMContentLoaded", () => {
   buttonInitDb.addEventListener("click", () => {
     viewModelInstance.initDatabase();
   });
+
+  //可以從輸入Database id開始
+  //繼續，流程如下：
+  //Model新增新的資料
+  //ViewModel關注訂閱
+  //View: pop.js
+  //Initial
+  //Subscribe
+  //Input
 
   // 單一資料庫顯示區 DOM
   const dbDisplay = document.getElementById("dbDisplay");
