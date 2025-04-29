@@ -152,8 +152,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   const textIndex = document.getElementById("index");
   const textIndexx = document.getElementById("indexx");
-
-  //Init
   viewModelInstance.getData(model.DataType.DATABASE_INDEX, (index) => {
     if (index !== undefined) {
       textIndex.textContent = index + 1;
@@ -168,7 +166,6 @@ document.addEventListener("DOMContentLoaded", () => {
       textIndexx.textContent = database.length;
     }
   });
-  //Subscribe
   viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
     textIndex.textContent = index + 1;
   });
@@ -176,24 +173,29 @@ document.addEventListener("DOMContentLoaded", () => {
     textIndexx.textContent = database.length;
   });
 
-  //繼續往下整理
   const buttonPreDb = document.getElementById("button-preDb");
   buttonPreDb.addEventListener("click", () => {
     viewModelInstance.moveBackwardIndex();
   });
+
   const buttonNextDb = document.getElementById("button-nextDb");
   buttonNextDb.addEventListener("click", () => {
     viewModelInstance.moveForwardIndex();
   });
 
   const buttonAddDb = document.getElementById("button-addDb");
-  const buttonDeleteDb = document.getElementById("button-deleteDb");
   buttonAddDb.addEventListener("click", () => {
     viewModelInstance.addDatabaseItem();
   });
 
+  const buttonDeleteDb = document.getElementById("button-deleteDb");
   buttonDeleteDb.addEventListener("click", () => {
     viewModelInstance.deleteDatabaseItemAtCurrentIndex();
+  });
+
+  const buttonInitDb = document.getElementById("button-initDb");
+  buttonInitDb.addEventListener("click", () => {
+    viewModelInstance.initDatabase();
   });
 
   // 單一資料庫顯示區 DOM
@@ -216,17 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
   //       });
   //     });
   //   });
-  //   deleteStorageBtn.addEventListener("click", () => {
-  //     chrome.storage.local.remove(["notionDatabases"], () => {
-  //       alert("All data was deleted");
-  //       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  //         chrome.tabs.sendMessage(tabs[0].id, { action: "CLEAR" });
-  //       });
-  //       updateModeDisplay("stopped");
-  //       currentDbIndex = 0;
-  //       renderCurrentDb();
-  //     });
-  //   });
+
   //   // ========== 「Highlight！」／「Stop」按鈕 ==========
   //   buttonExchangeMode.addEventListener("click", () => {
   //     if (buttonExchangeMode.textContent === "Highlight！") {

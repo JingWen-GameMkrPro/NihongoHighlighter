@@ -82,12 +82,18 @@ class model {
       if (database !== undefined) {
         if (database.length > 1) {
           database.splice(index, 1);
-          callback(database.length - 1);
+          callback(database.length);
         }
       }
       //Override
       this.setData(model.DataType.DATABASE, database);
     });
+  }
+
+  emptyDatabase() {
+    const newItem = new model.DatabaseItemStruct();
+    const database = [newItem];
+    this.setData(model.DataType.DATABASE, database);
   }
 
   static DatabaseItemStruct = class {

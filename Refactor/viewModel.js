@@ -120,6 +120,11 @@ class viewModel {
     });
   }
 
+  initDatabase() {
+    this._model.emptyDatabase();
+    this._model.setData(model.DataType.DATABASE_INDEX, 0);
+  }
+
   moveForwardIndex() {
     this._model.getData(model.DataType.DATABASE_INDEX, (index) => {
       if (index !== undefined) {
