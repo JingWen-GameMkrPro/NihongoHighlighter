@@ -13,10 +13,14 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   //Initial
   viewModelInstance.getData(model.DataType.TOKEN, (value) => {
-    // View inputNotionToken
-    inputNotionToken.value = value || "";
-    // View checkboxIsSaveToken
-    checkboxIsSaveToken.checked = !!value;
+    if (value !== undefined) {
+      inputNotionToken.value = value;
+      checkboxIsSaveToken.checked = true;
+    } else {
+      // View checkboxIsSaveToken
+      inputNotionToken.value = "";
+      checkboxIsSaveToken.checked = false;
+    }
   });
 
   //Subscribe
@@ -70,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initial
   viewModelInstance.getData(model.DataType.SPLIT_CHAR, (value) => {
-    if (value) {
+    if (value !== undefined) {
       inputSplitChar.value = value;
     } else {
       viewModelInstance.setData(model.DataType.SPLIT_CHAR, "/"); //Default
@@ -89,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   //Initial
   viewModelInstance.getData(model.DataType.HIGHLIGHT_COLOR, (value) => {
-    if (value) {
+    if (value !== undefined) {
       inputHighlightColor.value = value;
     } else {
       viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, "#ffff33"); //Default
@@ -108,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   //Initial
   viewModelInstance.getData(model.DataType.IS_HIGHLIGHT_MODE, (value) => {
-    if (value) {
+    if (value !== undefined) {
       if (value === true) {
         textCurrentMode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
       } else {
@@ -141,28 +145,59 @@ document.addEventListener("DOMContentLoaded", () => {
   //Subscribe
   //Input
 
-  // dataManagerInstance.asyncGetChormeStorageValue(
-  //   textCurrentMode.id,
-  //   (value) => {
-  //     if (value == null) {
-  //       // Default: UNHIGHLIGHT
-  //       dataManagerInstance.setChromeStorageValue(
-  //         textCurrentMode.id,
-  //         DataManager.ViewMode.UNHIGHLIGHT
-  //       );
-  //     }
-  //     // View inputNotionToken
-  //     textCurrentMode.value = value || DataManager.ViewMode.UNHIGHLIGHT;
-  //   }
-  // );
+  //Test
+  const buttonDebug = document.getElementById("button-debug");
+  buttonDebug.addEventListener("click", () => {
+    modelInstance.getAllData();
+  });
+  const textIndex = document.getElementById("index");
+  const textIndexx = document.getElementById("indexx");
 
-  //   //繼續往下整理
-  //   const addDbBtn = document.getElementById("addDbBtn");
-  //   const deleteStorageBtn = document.getElementById("deleteStorageBtn");
-  //   // 單一資料庫顯示區 DOM
-  //   const dbDisplay = document.getElementById("dbDisplay");
-  //   const prevDbBtn = document.getElementById("prevDbBtn");
-  //   const nextDbBtn = document.getElementById("nextDbBtn");
+  //Init
+  viewModelInstance.getData(model.DataType.DATABASE_INDEX, (index) => {
+    if (index !== undefined) {
+      textIndex.textContent = index + 1;
+    } else {
+      //連Index都沒有，代表還沒有任何資料庫
+      //新增第一個資料庫
+      viewModelInstance.addNewDatabase();
+    }
+  });
+  viewModelInstance.getData(model.DataType.DATABASE, (database) => {
+    if (database !== undefined) {
+      textIndexx.textContent = database.length;
+    }
+  });
+  //Subscribe
+  viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
+    textIndex.textContent = index + 1;
+  });
+  viewModelInstance.subscribe(model.DataType.DATABASE, (database) => {
+    textIndexx.textContent = database.length;
+  });
+
+  //繼續往下整理
+  const buttonPreDb = document.getElementById("button-preDb");
+  buttonPreDb.addEventListener("click", () => {
+    viewModelInstance.moveBackwardIndex();
+  });
+  const buttonNextDb = document.getElementById("button-nextDb");
+  buttonNextDb.addEventListener("click", () => {
+    viewModelInstance.moveForwardIndex();
+  });
+
+  const buttonAddDb = document.getElementById("button-addDb");
+  const buttonDeleteDb = document.getElementById("button-deleteDb");
+  buttonAddDb.addEventListener("click", () => {
+    viewModelInstance.addDatabaseItem();
+  });
+
+  buttonDeleteDb.addEventListener("click", () => {
+    viewModelInstance.deleteDatabaseItemAtCurrentIndex();
+  });
+
+  // 單一資料庫顯示區 DOM
+  const dbDisplay = document.getElementById("dbDisplay");
 
   //   // ========== 多資料庫操作：新增、刪除全部 ==========
   //   addDbBtn.addEventListener("click", () => {
@@ -225,15 +260,6 @@ document.addEventListener("DOMContentLoaded", () => {
   //     }
   //   });
 
-  //   // ========== 上一個／下一個按鈕 ==========
-  //   prevDbBtn.addEventListener("click", () => {
-  //     currentDbIndex--;
-  //     renderCurrentDb();
-  //   });
-  //   nextDbBtn.addEventListener("click", () => {
-  //     currentDbIndex++;
-  //     renderCurrentDb();
-  //   });
   //   // ========== 單一資料庫顯示區 ==========
   //   function renderCurrentDb() {
   //     chrome.storage.local.get("notionDatabases", (res) => {

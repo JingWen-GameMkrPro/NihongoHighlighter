@@ -9,6 +9,8 @@ class model {
     IS_HIGHLIGHT_MODE: "IsHighlightMode",
     SPLIT_CHAR: "SplitChar",
     HIGHLIGHT_COLOR: "HighlightColor",
+    DATABASE_INDEX: "DatabaseIndex",
+    DATABASE: "Database",
   });
 
   static DisplayText = Object.freeze({
@@ -24,11 +26,18 @@ class model {
 
   getData(dataType, callback) {
     chrome.storage.local.get([dataType], (res) => {
-      if (res[dataType]) {
+      if (res[dataType] !== undefined) {
         callback(res[dataType]);
       } else {
-        callback(null);
+        callback(undefined);
       }
+    });
+  }
+
+  getAllData() {
+    chrome.storage.local.get(null, function (items) {
+      console.log("Chrome Storage Local 内容:", items);
+      // 你可以在这里进一步处理这些数据，例如显示在你的扩展界面上
     });
   }
 
@@ -48,6 +57,42 @@ class model {
       });
     }
   }
+
+  //新增新的資料庫到尾端
+  addDatabaseItem(callback) {
+    //先拿現有的
+    this.getData(model.DataType.DATABASE, (database) => {
+      const newItem = new model.DatabaseItemStruct();
+      //如果有
+      if (database !== undefined) {
+        database.push(newItem);
+      } else {
+        database = [];
+        database.push(newItem);
+      }
+
+      //覆寫資料庫
+      this.setData(model.DataType.DATABASE, database);
+      callback(database.length);
+    });
+  }
+
+  deleteDatabaseItemAtInedx(index, callback) {
+    this.getData(model.DataType.DATABASE, (database) => {
+      if (database !== undefined) {
+        if (database.length > 1) {
+          database.splice(index, 1);
+          callback(database.length - 1);
+        }
+      }
+      //Override
+      this.setData(model.DataType.DATABASE, database);
+    });
+  }
+
+  static DatabaseItemStruct = class {
+    constructor() {}
+  };
 }
 const modelInstance = new model();
 //   asyncGetChormeStorageValue(key, callback) {
