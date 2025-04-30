@@ -32,8 +32,8 @@ class viewModel {
       this._notify(model.DataType.DATABASE_INDEX, newValue);
       this.getData(model.DataType.DATABASE, (database) => {
         this._notify(viewModel.EventType.VIEW_PAGE_CHANGED, {
-          item1: newValue[index],
-          item2: index,
+          newPage: database[newValue],
+          newIndex: newValue,
         });
       });
     });
@@ -42,8 +42,8 @@ class viewModel {
       this._notify(model.DataType.DATABASE, newValue);
       this.getData(model.DataType.DATABASE_INDEX, (index) => {
         this._notify(viewModel.EventType.VIEW_PAGE_CHANGED, {
-          item1: newValue[index],
-          item2: index,
+          newPage: newValue[index],
+          newIndex: index,
         });
       });
     });

@@ -213,12 +213,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // });
 
   const inputPageId = document.getElementById("input-pageId");
-  viewModelInstance.subscribe(viewModel.EventType.VIEW_PAGE_CHANGED, (data) => {
-    //Todo
-    textDbTitle.textContent =
-      model.DisplayText.TITLE_DATABASE_PREFIX + (data[item2] + 1);
-    inputPageId.value = data[item2] + 1;
-  });
+  viewModelInstance.subscribe(
+    viewModel.EventType.VIEW_PAGE_CHANGED,
+    ({ newPage, newIndex }) => {
+      //Todo
+      textDbTitle.textContent =
+        model.DisplayText.TITLE_DATABASE_PREFIX + (newIndex + 1);
+      inputPageId.value = newIndex + 1;
+    }
+  );
 
   //       const html = `
   //         <h1 style="font-size:15px;">${showTitle}</h1>
