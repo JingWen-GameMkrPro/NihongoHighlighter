@@ -28,6 +28,7 @@ class viewModel {
       this._notify(model.DataType.IS_HIGHLIGHT_MODE, newValue);
     });
 
+    //HACK: 以下兩個函式要維護同樣的操作，容易有錯誤
     this._model.subscribe(model.DataType.DATABASE_INDEX, (newValue) => {
       this._notify(model.DataType.DATABASE_INDEX, newValue);
       this.getData(model.DataType.DATABASE, (database) => {
