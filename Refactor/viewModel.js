@@ -30,12 +30,28 @@ class viewModel {
 
     this._model.subscribe(model.DataType.DATABASE_INDEX, (newValue) => {
       this._notify(model.DataType.DATABASE_INDEX, newValue);
+      this.getData(model.DataType.DATABASE, (database) => {
+        this._notify(viewModel.EventType.VIEW_PAGE_CHANGED, {
+          item1: newValue[index],
+          item2: index,
+        });
+      });
     });
 
     this._model.subscribe(model.DataType.DATABASE, (newValue) => {
       this._notify(model.DataType.DATABASE, newValue);
+      this.getData(model.DataType.DATABASE_INDEX, (index) => {
+        this._notify(viewModel.EventType.VIEW_PAGE_CHANGED, {
+          item1: newValue[index],
+          item2: index,
+        });
+      });
     });
   }
+
+  static EventType = Object.freeze({
+    VIEW_PAGE_CHANGED: "View_Page_Changed",
+  });
 
   setData(dataType, value) {
     this._model.setData(dataType, value);

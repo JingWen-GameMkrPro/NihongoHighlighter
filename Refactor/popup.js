@@ -206,11 +206,20 @@ document.addEventListener("DOMContentLoaded", () => {
     textDbTitle.textContent =
       model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
   });
-  viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
-    //HACK: 之後標題會改為資料庫名稱
+  // viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
+  //   //HACK: 之後標題會改為資料庫名稱
+  //   textDbTitle.textContent =
+  //     model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
+  // });
+
+  const inputPageId = document.getElementById("input-pageId");
+  viewModelInstance.subscribe(viewModel.EventType.VIEW_PAGE_CHANGED, (data) => {
+    //Todo
     textDbTitle.textContent =
-      model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
+      model.DisplayText.TITLE_DATABASE_PREFIX + (data[item2] + 1);
+    inputPageId.value = data[item2] + 1;
   });
+
   //       const html = `
   //         <h1 style="font-size:15px;">${showTitle}</h1>
   //         <label class="info-line">Page ID：</label><br>
