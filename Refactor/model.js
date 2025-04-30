@@ -16,6 +16,7 @@ class model {
   static DisplayText = Object.freeze({
     TITLE_MODE_HIGHLIGHT: "Mode: Highlight Mode",
     TITLE_MODE_UNHIGHLIGHT: "Mode: Unhighlight Mode",
+    TITLE_DATABASE_PREFIX: "Title: ",
   });
 
   setData(dataType, value) {

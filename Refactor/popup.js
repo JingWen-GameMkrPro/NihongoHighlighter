@@ -201,7 +201,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 單一資料庫顯示區 DOM
   const dbDisplay = document.getElementById("dbDisplay");
-
+  const textDbTitle = document.getElementById("text-dbTitle");
+  viewModelInstance.getData(model.DataType.DATABASE_INDEX, (index) => {
+    textDbTitle.textContent =
+      model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
+  });
+  viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
+    //HACK: 之後標題會改為資料庫名稱
+    textDbTitle.textContent =
+      model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
+  });
+  //       const html = `
+  //         <h1 style="font-size:15px;">${showTitle}</h1>
+  //         <label class="info-line">Page ID：</label><br>
+  //         <input type="text" class="pageIdInput styled-input" style="margin-top:10px;" value="${
+  //           dbItem.pageId
+  //         }" data-id="${dbItem.id}" />
+  //         <br>
+  //         <br>
+  //         ${renderStatsInfo(dbItem)}
+  //         <button class="refreshDbBtn" data-id="${
+  //           dbItem.id
+  //         }" style="margin-top:10px;">Refresh</button>
+  //         <button class="deleteDbBtn" data-id="${
+  //           dbItem.id
+  //         }" style="margin-top:10px;">Delete</button>
+  //         <br><br>
+  //         <span style="font-size:14px;">${currentNum}/${total}</span>
+  //       `;
+  //       dbDisplay.innerHTML = html;
   //   // ========== 多資料庫操作：新增、刪除全部 ==========
   //   addDbBtn.addEventListener("click", () => {
   //     chrome.storage.local.get("notionDatabases", (res) => {

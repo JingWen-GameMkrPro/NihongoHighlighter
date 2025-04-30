@@ -232,6 +232,40 @@
       <div id="index">Index</div>
       <div id="indexx">Indexx</div>
       <div id="dbDisplay" class="block-area" style="margin-top: 20px"></div>
+      <h1 id="text-dbTitle" style="font-size: 15px">Title</h1>
+      <label class="info-line">Page ID：</label><br />
+      <input
+        type="text"
+        class="pageIdInput styled-input"
+        style="margin-top: 10px"
+        value="${
+            dbItem.pageId
+          }"
+        data-id="${dbItem.id}"
+      />
+      <br />
+      <br />
+      ${renderStatsInfo(dbItem)}
+      <button
+        class="refreshDbBtn"
+        data-id="${
+            dbItem.id
+          }"
+        style="margin-top: 10px"
+      >
+        Refresh
+      </button>
+      <button
+        class="deleteDbBtn"
+        data-id="${
+            dbItem.id
+          }"
+        style="margin-top: 10px"
+      >
+        Delete
+      </button>
+      <br /><br />
+      <span style="font-size: 14px">${currentNum}/${total}</span>
       <div class="nav-buttons">
         <button id="button-preDb">上一個</button>
         <button id="button-nextDb">下一個</button>
