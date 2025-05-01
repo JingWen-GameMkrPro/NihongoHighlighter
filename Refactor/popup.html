@@ -227,19 +227,42 @@
         <button id="button-exchangeMode">Highlight！</button>
       </div>
 
-      <!-- Card: Database Panel -->
+      <!-- HACK: TMP -->
       <button id="button-debug">Debug</button>
       <div id="index">Index</div>
       <div id="indexx">Indexx</div>
       <div id="dbDisplay" class="block-area" style="margin-top: 20px"></div>
+
+      <!-- Card: Database Panel -->
+      <!-- NOTE: 必須要跟model.SourceType enum 一樣 -->
+      <template id="sourceItem-NotionPageId">
+        <input
+          type="text"
+          id="input-pageId"
+          placeholder="Enter Page ID"
+          class="styled-input"
+        />
+      </template>
+
+      <template id="sourceItem-NotionDatabaseId">
+        <input
+          type="text"
+          id="input-dbId"
+          placeholder="Enter Database ID"
+          class="styled-input"
+      /></template>
+
+      <template id="sourceItem-txt"><div>Text</div> </template>
+
       <h1 id="text-dbTitle" style="font-size: 15px">Title</h1>
+      <select id="select-sourceType">
+        <!-- NOTE: 必須要跟model.SourceType enum 一樣 -->
+        <option value="NotionPageId">Notion Page ID</option>
+        <option value="NotionDatabaseId">Notion Database ID</option>
+      </select>
       <label class="info-line">Page ID：</label><br />
-      <input
-        type="text"
-        id="input-pageId"
-        placeholder="Enter Page ID"
-        class="styled-input"
-      />
+      <div id="container-sourceItem"></div>
+
       <br />
       <br />
       ${renderStatsInfo(dbItem)}

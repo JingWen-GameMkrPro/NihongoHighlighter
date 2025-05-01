@@ -200,28 +200,75 @@ document.addEventListener("DOMContentLoaded", () => {
   //Input
 
   // 單一資料庫顯示區 DOM
-  const dbDisplay = document.getElementById("dbDisplay");
+  //const dbDisplay = document.getElementById("dbDisplay");
+
   const textDbTitle = document.getElementById("text-dbTitle");
-  viewModelInstance.getData(model.DataType.DATABASE_INDEX, (index) => {
+
+  const selectSourceType = document.getElementById("select-sourceType");
+
+  const containerSourceItem = document.getElementById("container-sourceItem");
+  // INIT
+  viewModelInstance.getCurrentIndexItem((item) => {
     textDbTitle.textContent =
       model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
-  });
-  // viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
-  //   //HACK: 之後標題會改為資料庫名稱
-  //   textDbTitle.textContent =
-  //     model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
-  // });
+    selectSourceType.value = item.sourceType;
+    //Source Item
+    const template = document.getElementById(`sourceItem-${item.sourceType}`);
+    containerSourceItem.innerHTML = "";
+    const clone = template.content.cloneNode(true);
+    containerSourceItem.appendChild(clone);
 
-  const inputPageId = document.getElementById("input-pageId");
+    switch (item.sourceType) {
+      case model.SourceType.NOTION_PAGE_ID:
+        const inputPageId = document.getElementById("input-pageId");
+        inputPageId.textContent = item.sourceItem.id;
+        break;
+      case model.SourceType.NOTION_DATABASE_ID:
+        const inputDbId = document.getElementById("input-dbId");
+        inputDbId.textContent = item.sourceItem.id;
+        break;
+
+      case model.SourceType.TEXT_FILE:
+        break;
+    }
+  });
+
+  //USER
+  selectSourceType.addEventListener("change", () => {
+    viewModelInstance.whenViewItemSourceTypeChanged(selectSourceType.value);
+  });
   viewModelInstance.subscribe(
-    viewModel.EventType.VIEW_PAGE_CHANGED,
-    ({ newPage, newIndex }) => {
-      //Todo
+    viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    ({ newItem, newIndex }) => {
+      //非Source Item
       textDbTitle.textContent =
         model.DisplayText.TITLE_DATABASE_PREFIX + (newIndex + 1);
-      inputPageId.value = newIndex + 1;
+      selectSourceType.value = newItem.sourceType;
+
+      //Source Item
+      const template = document.getElementById(
+        `sourceItem-${newItem.sourceType}`
+      );
+      containerSourceItem.innerHTML = "";
+      const clone = template.content.cloneNode(true);
+      containerSourceItem.appendChild(clone);
+      switch (newItem.sourceType) {
+        case model.SourceType.NOTION_PAGE_ID:
+          const inputPageId = document.getElementById("input-pageId");
+          inputPageId.textContent = newItem.sourceItem.id;
+          break;
+
+        case model.SourceType.NOTION_DATABASE_ID:
+          const inputDbId = document.getElementById("input-dbId");
+          inputDbId.textContent = newItem.sourceItem.id;
+          break;
+
+        case model.SourceType.TEXT_FILE:
+          break;
+      }
     }
   );
+  // TODO: 目前輸入id還無法儲存到database
 
   //       const html = `
   //         <h1 style="font-size:15px;">${showTitle}</h1>

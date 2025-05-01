@@ -31,28 +31,29 @@ class viewModel {
     //HACK: 以下兩個函式要維護同樣的操作，容易有錯誤
     this._model.subscribe(model.DataType.DATABASE_INDEX, (newValue) => {
       this._notify(model.DataType.DATABASE_INDEX, newValue);
-      this.getData(model.DataType.DATABASE, (database) => {
-        this._notify(viewModel.EventType.VIEW_PAGE_CHANGED, {
-          newPage: database[newValue],
-          newIndex: newValue,
-        });
-      });
+      this._notifyEventViewItemNeedChangedSubscribers();
     });
 
     this._model.subscribe(model.DataType.DATABASE, (newValue) => {
       this._notify(model.DataType.DATABASE, newValue);
+      this._notifyEventViewItemNeedChangedSubscribers();
+    });
+  }
+
+  static EventType = Object.freeze({
+    VIEW_ITEM_NEED_CHANGED: "View_Iten_Need_Changed",
+  });
+
+  _notifyEventViewItemNeedChangedSubscribers() {
+    this.getData(model.DataType.DATABASE, (database) => {
       this.getData(model.DataType.DATABASE_INDEX, (index) => {
-        this._notify(viewModel.EventType.VIEW_PAGE_CHANGED, {
-          newPage: newValue[index],
+        this._notify(viewModel.EventType.VIEW_ITEM_NEED_CHANGED, {
+          newItem: database[index],
           newIndex: index,
         });
       });
     });
   }
-
-  static EventType = Object.freeze({
-    VIEW_PAGE_CHANGED: "View_Page_Changed",
-  });
 
   setData(dataType, value) {
     this._model.setData(dataType, value);
@@ -168,6 +169,20 @@ class viewModel {
         });
       }
     });
+  }
+
+  getCurrentIndexItem(callback) {
+    this._model.getData(model.DataType.DATABASE_INDEX, (index) => {
+      this._model.getData(model.DataType.DATABASE, (database) => {
+        if (database[index]) {
+          callback(database[index]);
+        }
+      });
+    });
+  }
+
+  whenViewItemSourceTypeChanged(newSourceType) {
+    this._model.changeItemSourceType(newSourceType);
   }
 }
 const viewModelInstance = new viewModel(modelInstance);

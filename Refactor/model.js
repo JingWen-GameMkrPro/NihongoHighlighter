@@ -19,6 +19,12 @@ class model {
     TITLE_DATABASE_PREFIX: "Title: ",
   });
 
+  static SourceType = Object.freeze({
+    NOTION_PAGE_ID: "NotionPageId",
+    NOTION_DATABASE_ID: "NotionDatabaseId",
+    TEXT_FILE: "TextFile",
+  });
+
   setData(dataType, value) {
     chrome.storage.local.set({ [dataType]: value }, () => {
       this._notify(dataType, value);
@@ -91,14 +97,64 @@ class model {
     });
   }
 
+  //刪除所有資料庫，並初始化成只有一個空的Page
   emptyDatabase() {
     const newItem = new model.DatabaseItemStruct();
     const database = [newItem];
     this.setData(model.DataType.DATABASE, database);
   }
 
+  //改變目前index的來源物件類型
+  changeItemSourceType(newSourceType) {
+    this.getData(model.DataType.DATABASE_INDEX, (index) => {
+      this.getData(model.DataType.DATABASE, (database) => {
+        const newItem = new model.DatabaseItemStruct({
+          sourceType: newSourceType,
+          existData: database[index],
+        });
+        database[index] = newItem;
+        this.setData(model.DataType.DATABASE, database);
+      });
+    });
+  }
+
   static DatabaseItemStruct = class {
-    constructor() {}
+    constructor({
+      sourceType = model.SourceType.NOTION_PAGE_ID,
+      existData = null,
+    } = {}) {
+      this.isActive = existData?.isActive ?? true;
+      this.name = existData?.name ?? "";
+      this.sourceType = sourceType;
+      this.sourceItem = this._returnSourceItemByType(sourceType);
+    }
+    _returnSourceItemByType(sourceType) {
+      switch (sourceType) {
+        case model.SourceType.NOTION_PAGE_ID:
+          return new model.SourceItemNotionPageIdStruct();
+        case model.SourceType.NOTION_DATABASE_ID:
+          return new model.SourceItemNotionDatabaseIdStruct();
+        case model.SourceType.TEXT_FILE:
+          throw new Error(`Unknown source type: ${sourceType}`);
+        default:
+          throw new Error(`Unknown source type: ${sourceType}`);
+      }
+    }
+  };
+
+  static SourceItemNotionPageIdStruct = class {
+    constructor() {
+      //使用者可以自行更改?
+      this.id = "";
+      this.splitSymbol = "/";
+    }
+  };
+
+  static SourceItemNotionDatabaseIdStruct = class {
+    constructor() {
+      //使用者可以自行更改?
+      this.id = "";
+    }
   };
 }
 const modelInstance = new model();
