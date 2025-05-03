@@ -175,7 +175,7 @@ class viewModel {
     this._model.getData(model.DataType.DATABASE_INDEX, (index) => {
       this._model.getData(model.DataType.DATABASE, (database) => {
         if (database[index]) {
-          callback(database[index]);
+          callback({ index: index, item: database[index] });
         }
       });
     });

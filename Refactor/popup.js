@@ -208,7 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const containerSourceItem = document.getElementById("container-sourceItem");
   // INIT
-  viewModelInstance.getCurrentIndexItem((item) => {
+  viewModelInstance.getCurrentIndexItem(({ index, item }) => {
     textDbTitle.textContent =
       model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
     selectSourceType.value = item.sourceType;
