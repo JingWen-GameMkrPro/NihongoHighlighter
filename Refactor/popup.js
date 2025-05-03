@@ -5,31 +5,68 @@ let currentDbIndex = 0; // 目前顯示的資料庫索引
 let tmp;
 
 document.addEventListener("DOMContentLoaded", () => {
+  //TODO: Token 應該要移到item
   //Card: Token
   const checkboxIsSaveToken = document.getElementById("checkbox-isSaveToken");
   const inputNotionToken = document.getElementById("input-notionToken");
   const toggleTokenVisibility = document.getElementById(
     "toggle-tokenVisibility"
   );
-  //Initial
-  viewModelInstance.getData(model.DataType.TOKEN, (value) => {
-    if (value !== undefined) {
-      inputNotionToken.value = value;
-      checkboxIsSaveToken.checked = true;
-    } else {
-      // View checkboxIsSaveToken
-      inputNotionToken.value = "";
-      checkboxIsSaveToken.checked = false;
-    }
-  });
 
-  //Subscribe
+  // Card: Control Panel
+  const textCurrentMode = document.getElementById("text-currentMode");
+  //TODO: Token 應該要移到item
+  const inputSplitChar = document.getElementById("input-splitChar");
+  const inputHighlightColor = document.getElementById("input-highlightColor");
+  const buttonExchangeMode = document.getElementById("button-exchangeMode");
+
+  // Card: Item Title
+  const textDbTitle = document.getElementById("text-dbTitle");
+  const selectSourceType = document.getElementById("select-sourceType");
+  const containerSourceItem = document.getElementById("container-sourceItem");
+  const buttonPreDb = document.getElementById("button-preDb");
+  const buttonNextDb = document.getElementById("button-nextDb");
+  const buttonAddDb = document.getElementById("button-addDb");
+  const buttonDeleteDb = document.getElementById("button-deleteDb");
+  const buttonInitDb = document.getElementById("button-initDb");
+  //Test
+  const buttonDebug = document.getElementById("button-debug");
+  const textIndex = document.getElementById("index");
+  const textIndexx = document.getElementById("indexx");
+
   function updateToken(newValue) {
     inputNotionToken.value = newValue || "";
     // checkboxIsSaveToken.checked = !!newValue;
   }
+
+  //Subscribe
   //View想關注...資料，資料變化就執行...
   viewModelInstance.subscribe(model.DataType.TOKEN, updateToken);
+
+  viewModelInstance.subscribe(model.DataType.SPLIT_CHAR, (newValue) => {
+    inputSplitChar.value = newValue;
+  });
+
+  viewModelInstance.subscribe(model.DataType.HIGHLIGHT_COLOR, (newValue) => {
+    inputHighlightColor.value = newValue;
+  });
+
+  //Subscribe
+  viewModelInstance.subscribe(model.DataType.IS_HIGHLIGHT_MODE, (newValue) => {
+    if (newValue == true) {
+      textCurrentMode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
+    } else {
+      textCurrentMode.textContent = model.DisplayText.TITLE_MODE_UNHIGHLIGHT;
+    }
+  });
+
+  viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
+    textIndex.textContent = index + 1;
+  });
+
+  viewModelInstance.subscribe(model.DataType.DATABASE, (database) => {
+    textIndexx.textContent = database.length;
+  });
 
   //UserInput
   checkboxIsSaveToken.addEventListener("change", (e) => {
@@ -66,11 +103,44 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleTokenVisibility.textContent = "👁";
   });
 
-  // Card: Control Panel
-  const textCurrentMode = document.getElementById("text-currentMode");
-  const inputSplitChar = document.getElementById("input-splitChar");
-  const inputHighlightColor = document.getElementById("input-highlightColor");
-  const buttonExchangeMode = document.getElementById("button-exchangeMode");
+  //Input
+  inputSplitChar.addEventListener("change", (e) => {
+    viewModelInstance.setData(model.DataType.SPLIT_CHAR, e.target.value);
+  });
+
+  //Input
+  inputHighlightColor.addEventListener("change", (e) => {
+    viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, e.target.value);
+  });
+
+  // Input，讓viewmodel知道，其他不用管，
+  buttonExchangeMode.addEventListener("click", () => {
+    viewModelInstance.exchangeMode();
+  });
+
+  buttonDebug.addEventListener("click", () => {
+    modelInstance.getAllData();
+  });
+
+  buttonPreDb.addEventListener("click", () => {
+    viewModelInstance.moveBackwardIndex();
+  });
+
+  buttonNextDb.addEventListener("click", () => {
+    viewModelInstance.moveForwardIndex();
+  });
+
+  buttonAddDb.addEventListener("click", () => {
+    viewModelInstance.addDatabaseItem();
+  });
+
+  buttonDeleteDb.addEventListener("click", () => {
+    viewModelInstance.deleteDatabaseItemAtCurrentIndex();
+  });
+
+  buttonInitDb.addEventListener("click", () => {
+    viewModelInstance.initDatabase();
+  });
 
   // Initial
   viewModelInstance.getData(model.DataType.SPLIT_CHAR, (value) => {
@@ -81,14 +151,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  //Subscribe
-  viewModelInstance.subscribe(model.DataType.SPLIT_CHAR, (newValue) => {
-    inputSplitChar.value = newValue;
-  });
-
-  //Input
-  inputSplitChar.addEventListener("change", (e) => {
-    viewModelInstance.setData(model.DataType.SPLIT_CHAR, e.target.value);
+  //Initial
+  viewModelInstance.getData(model.DataType.TOKEN, (value) => {
+    if (value !== undefined) {
+      inputNotionToken.value = value;
+      checkboxIsSaveToken.checked = true;
+    } else {
+      // View checkboxIsSaveToken
+      inputNotionToken.value = "";
+      checkboxIsSaveToken.checked = false;
+    }
   });
 
   //Initial
@@ -98,16 +170,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, "#ffff33"); //Default
     }
-  });
-
-  //Subscribe
-  viewModelInstance.subscribe(model.DataType.HIGHLIGHT_COLOR, (newValue) => {
-    inputHighlightColor.value = newValue;
-  });
-
-  //Input
-  inputHighlightColor.addEventListener("change", (e) => {
-    viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, e.target.value);
   });
 
   //Initial
@@ -123,27 +185,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  //Subscribe
-  viewModelInstance.subscribe(model.DataType.IS_HIGHLIGHT_MODE, (newValue) => {
-    if (newValue == true) {
-      textCurrentMode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
-    } else {
-      textCurrentMode.textContent = model.DisplayText.TITLE_MODE_UNHIGHLIGHT;
-    }
-  });
-
-  // Input，讓viewmodel知道，其他不用管，
-  buttonExchangeMode.addEventListener("click", () => {
-    viewModelInstance.exchangeMode();
-  });
-
-  //Test
-  const buttonDebug = document.getElementById("button-debug");
-  buttonDebug.addEventListener("click", () => {
-    modelInstance.getAllData();
-  });
-  const textIndex = document.getElementById("index");
-  const textIndexx = document.getElementById("indexx");
   viewModelInstance.getData(model.DataType.DATABASE_INDEX, (index) => {
     if (index !== undefined) {
       textIndex.textContent = index + 1;
@@ -153,41 +194,11 @@ document.addEventListener("DOMContentLoaded", () => {
       viewModelInstance.addNewDatabase();
     }
   });
+
   viewModelInstance.getData(model.DataType.DATABASE, (database) => {
     if (database !== undefined) {
       textIndexx.textContent = database.length;
     }
-  });
-  viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
-    textIndex.textContent = index + 1;
-  });
-  viewModelInstance.subscribe(model.DataType.DATABASE, (database) => {
-    textIndexx.textContent = database.length;
-  });
-
-  const buttonPreDb = document.getElementById("button-preDb");
-  buttonPreDb.addEventListener("click", () => {
-    viewModelInstance.moveBackwardIndex();
-  });
-
-  const buttonNextDb = document.getElementById("button-nextDb");
-  buttonNextDb.addEventListener("click", () => {
-    viewModelInstance.moveForwardIndex();
-  });
-
-  const buttonAddDb = document.getElementById("button-addDb");
-  buttonAddDb.addEventListener("click", () => {
-    viewModelInstance.addDatabaseItem();
-  });
-
-  const buttonDeleteDb = document.getElementById("button-deleteDb");
-  buttonDeleteDb.addEventListener("click", () => {
-    viewModelInstance.deleteDatabaseItemAtCurrentIndex();
-  });
-
-  const buttonInitDb = document.getElementById("button-initDb");
-  buttonInitDb.addEventListener("click", () => {
-    viewModelInstance.initDatabase();
   });
 
   //可以從輸入Database id開始
@@ -199,14 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
   //Subscribe
   //Input
 
-  // 單一資料庫顯示區 DOM
-  //const dbDisplay = document.getElementById("dbDisplay");
-
-  const textDbTitle = document.getElementById("text-dbTitle");
-
-  const selectSourceType = document.getElementById("select-sourceType");
-
-  const containerSourceItem = document.getElementById("container-sourceItem");
   // INIT
   viewModelInstance.getCurrentIndexItem(({ index, item }) => {
     textDbTitle.textContent =
@@ -268,6 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   );
+
   // TODO: 目前輸入id還無法儲存到database
 
   //       const html = `
