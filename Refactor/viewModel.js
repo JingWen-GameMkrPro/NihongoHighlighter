@@ -184,5 +184,79 @@ class viewModel {
   whenViewItemSourceTypeChanged(newSourceType) {
     this._model.changeItemSourceType(newSourceType);
   }
+
+  //檢查callback是否有訂閱target，匿名函式無法查詢
+  isSubscribe(target, callback) {
+    return this._subscribers[target]?.includes(callback) ?? false;
+  }
+
+  //初始化所有VIEW資料
+  initView({
+    token,
+    isSaveToken,
+    splitChar,
+    highlightColor,
+    mode,
+    debug1,
+    debug2,
+  }) {
+    this.getData(model.DataType.TOKEN, (value) => {
+      if (value !== undefined) {
+        token.value = value;
+        isSaveToken.checked = true;
+      } else {
+        token.value = "";
+        isSaveToken.checked = false;
+      }
+    });
+
+    this.getData(model.DataType.SPLIT_CHAR, (value) => {
+      if (value !== undefined) {
+        splitChar.value = value;
+      } else {
+        //HACK: 是否要主動設定初始值
+        this.setData(model.DataType.SPLIT_CHAR, "/"); //Default
+      }
+    });
+
+    this.getData(model.DataType.HIGHLIGHT_COLOR, (value) => {
+      if (value !== undefined) {
+        highlightColor.value = value;
+      } else {
+        //HACK: 是否要主動設定初始值
+        this.setData(model.DataType.HIGHLIGHT_COLOR, "#ffff33"); //Default
+      }
+    });
+
+    this.getData(model.DataType.IS_HIGHLIGHT_MODE, (value) => {
+      if (value !== undefined) {
+        if (value === true) {
+          mode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
+        } else {
+          mode.textContent = model.DisplayText.TITLE_MODE_UNHIGHLIGHT;
+        }
+      } else {
+        //HACK: 是否要主動設定初始值
+        this.setData(model.DataType.IS_HIGHLIGHT_MODE, true);
+      }
+    });
+
+    //DEBUG
+    this.getData(model.DataType.DATABASE_INDEX, (index) => {
+      if (index !== undefined) {
+        debug1.textContent = index + 1;
+      } else {
+        //HACK: 是否要主動設定初始值
+        this.addNewDatabase();
+      }
+    });
+
+    //DEBUG
+    this.getData(model.DataType.DATABASE, (database) => {
+      if (database !== undefined) {
+        debug2.textContent = database.length;
+      }
+    });
+  }
 }
 const viewModelInstance = new viewModel(modelInstance);

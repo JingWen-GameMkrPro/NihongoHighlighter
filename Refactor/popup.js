@@ -21,58 +21,71 @@ document.addEventListener("DOMContentLoaded", () => {
   const buttonExchangeMode = document.getElementById("button-exchangeMode");
 
   // Card: Item Title
-  const textDbTitle = document.getElementById("text-dbTitle");
-  const selectSourceType = document.getElementById("select-sourceType");
-  const containerSourceItem = document.getElementById("container-sourceItem");
+
   const buttonPreDb = document.getElementById("button-preDb");
   const buttonNextDb = document.getElementById("button-nextDb");
   const buttonAddDb = document.getElementById("button-addDb");
   const buttonDeleteDb = document.getElementById("button-deleteDb");
   const buttonInitDb = document.getElementById("button-initDb");
-  //Test
+
+  //DEBUG
   const buttonDebug = document.getElementById("button-debug");
+  //DEBUG
   const textIndex = document.getElementById("index");
+  //DEBUG
   const textIndexx = document.getElementById("indexx");
 
-  function updateToken(newValue) {
+  function updateTokenView(newValue) {
     inputNotionToken.value = newValue || "";
-    // checkboxIsSaveToken.checked = !!newValue;
   }
 
-  //Subscribe
-  //View想關注...資料，資料變化就執行...
-  viewModelInstance.subscribe(model.DataType.TOKEN, updateToken);
-
-  viewModelInstance.subscribe(model.DataType.SPLIT_CHAR, (newValue) => {
+  function updateSplitCharView(newValue) {
     inputSplitChar.value = newValue;
-  });
+  }
 
-  viewModelInstance.subscribe(model.DataType.HIGHLIGHT_COLOR, (newValue) => {
-    inputHighlightColor.value = newValue;
-  });
-
-  //Subscribe
-  viewModelInstance.subscribe(model.DataType.IS_HIGHLIGHT_MODE, (newValue) => {
+  function updateModeTitleView(newValue) {
     if (newValue == true) {
       textCurrentMode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
     } else {
       textCurrentMode.textContent = model.DisplayText.TITLE_MODE_UNHIGHLIGHT;
     }
-  });
+  }
 
-  viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, (index) => {
-    textIndex.textContent = index + 1;
-  });
+  function updateHighlightColor(newValue) {
+    inputHighlightColor.value = newValue;
+  }
 
-  viewModelInstance.subscribe(model.DataType.DATABASE, (database) => {
-    textIndexx.textContent = database.length;
-  });
+  //DEBUG: 顯示目前index
+  function updateTextIndex(newValue) {
+    textIndex.textContent = newValue + 1;
+  }
+
+  //DEBUG: 顯示目前index
+  function updateTextIndexx(newValue) {
+    textIndexx.textContent = newValue.length;
+  }
+
+  //Subscribe
+  viewModelInstance.subscribe(model.DataType.TOKEN, updateTokenView);
+  viewModelInstance.subscribe(model.DataType.SPLIT_CHAR, updateSplitCharView);
+  viewModelInstance.subscribe(
+    model.DataType.IS_HIGHLIGHT_MODE,
+    updateModeTitleView
+  );
+  viewModelInstance.subscribe(
+    model.DataType.HIGHLIGHT_COLOR,
+    updateHighlightColor
+  );
+  //DEBUG: 顯示目前index
+  viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, updateTextIndex);
+  //DEBUG: 顯示目前資料庫大小
+  viewModelInstance.subscribe(updateTextIndexx);
 
   //UserInput
   checkboxIsSaveToken.addEventListener("change", (e) => {
     if (e.target.checked) {
       // 重新訂閱
-      viewModelInstance.subscribe(model.DataType.TOKEN, updateToken);
+      viewModelInstance.subscribe(model.DataType.TOKEN, updateTokenView);
       // 設定資料
       viewModelInstance.setData(
         model.DataType.TOKEN,
@@ -80,13 +93,12 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     } else {
       // 解除訂閱
-      viewModelInstance.unsubscribe(model.DataType.TOKEN, updateToken);
+      viewModelInstance.unsubscribe(model.DataType.TOKEN, updateTokenView);
       // 將資料銷毀
       viewModelInstance.removeData(model.DataType.TOKEN);
     }
     checkboxIsSaveToken.checked = e.target.checked;
   });
-
   inputNotionToken.addEventListener("change", (e) => {
     //先查看目前是否有bind，決定是否要set data
     if (checkboxIsSaveToken.checked) {
@@ -96,109 +108,40 @@ document.addEventListener("DOMContentLoaded", () => {
       inputNotionToken.value = e.target.value.trim();
     }
   });
-
   toggleTokenVisibility.addEventListener("click", () => {
     inputNotionToken.type =
       inputNotionToken.type === "password" ? "text" : "password";
     toggleTokenVisibility.textContent = "👁";
   });
-
-  //Input
   inputSplitChar.addEventListener("change", (e) => {
     viewModelInstance.setData(model.DataType.SPLIT_CHAR, e.target.value);
   });
-
-  //Input
   inputHighlightColor.addEventListener("change", (e) => {
     viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, e.target.value);
   });
-
-  // Input，讓viewmodel知道，其他不用管，
   buttonExchangeMode.addEventListener("click", () => {
     viewModelInstance.exchangeMode();
   });
-
   buttonDebug.addEventListener("click", () => {
     modelInstance.getAllData();
   });
-
   buttonPreDb.addEventListener("click", () => {
     viewModelInstance.moveBackwardIndex();
   });
-
   buttonNextDb.addEventListener("click", () => {
     viewModelInstance.moveForwardIndex();
   });
-
   buttonAddDb.addEventListener("click", () => {
     viewModelInstance.addDatabaseItem();
   });
-
   buttonDeleteDb.addEventListener("click", () => {
     viewModelInstance.deleteDatabaseItemAtCurrentIndex();
   });
-
   buttonInitDb.addEventListener("click", () => {
     viewModelInstance.initDatabase();
   });
-
-  // Initial
-  viewModelInstance.getData(model.DataType.SPLIT_CHAR, (value) => {
-    if (value !== undefined) {
-      inputSplitChar.value = value;
-    } else {
-      viewModelInstance.setData(model.DataType.SPLIT_CHAR, "/"); //Default
-    }
-  });
-
-  //Initial
-  viewModelInstance.getData(model.DataType.TOKEN, (value) => {
-    if (value !== undefined) {
-      inputNotionToken.value = value;
-      checkboxIsSaveToken.checked = true;
-    } else {
-      // View checkboxIsSaveToken
-      inputNotionToken.value = "";
-      checkboxIsSaveToken.checked = false;
-    }
-  });
-
-  //Initial
-  viewModelInstance.getData(model.DataType.HIGHLIGHT_COLOR, (value) => {
-    if (value !== undefined) {
-      inputHighlightColor.value = value;
-    } else {
-      viewModelInstance.setData(model.DataType.HIGHLIGHT_COLOR, "#ffff33"); //Default
-    }
-  });
-
-  //Initial
-  viewModelInstance.getData(model.DataType.IS_HIGHLIGHT_MODE, (value) => {
-    if (value !== undefined) {
-      if (value === true) {
-        textCurrentMode.textContent = model.DisplayText.TITLE_MODE_HIGHLIGHT;
-      } else {
-        textCurrentMode.textContent = model.DisplayText.TITLE_MODE_UNHIGHLIGHT;
-      }
-    } else {
-      viewModelInstance.setData(model.DataType.IS_HIGHLIGHT_MODE, true);
-    }
-  });
-
-  viewModelInstance.getData(model.DataType.DATABASE_INDEX, (index) => {
-    if (index !== undefined) {
-      textIndex.textContent = index + 1;
-    } else {
-      //連Index都沒有，代表還沒有任何資料庫
-      //新增第一個資料庫
-      viewModelInstance.addNewDatabase();
-    }
-  });
-
-  viewModelInstance.getData(model.DataType.DATABASE, (database) => {
-    if (database !== undefined) {
-      textIndexx.textContent = database.length;
-    }
+  selectSourceType.addEventListener("change", () => {
+    viewModelInstance.whenViewItemSourceTypeChanged(selectSourceType.value);
   });
 
   //可以從輸入Database id開始
@@ -209,6 +152,17 @@ document.addEventListener("DOMContentLoaded", () => {
   //Initial
   //Subscribe
   //Input
+
+  //初始化所有View
+  viewModelInstance.initView({
+    token: inputNotionToken,
+    isSaveToken: checkboxIsSaveToken,
+    splitChar: inputSplitChar,
+    highlightColor: inputHighlightColor,
+    mode: textCurrentMode,
+    debug1: textIndex,
+    debug2: textIndexx,
+  });
 
   // INIT
   viewModelInstance.getCurrentIndexItem(({ index, item }) => {
@@ -236,10 +190,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  //USER
-  selectSourceType.addEventListener("change", () => {
-    viewModelInstance.whenViewItemSourceTypeChanged(selectSourceType.value);
-  });
+  //有訂閱的會傳key+callback
+  //改以狀態模式?
+  const sourceItemSubscribeCallback = {};
+  function unsubscribeItemElement() {
+    //目前託管的callback
+    sourceItemSubscribeCallback.array.forEach((element) => {});
+  }
+
   viewModelInstance.subscribe(
     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
     ({ newItem, newIndex }) => {
@@ -271,6 +229,136 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   );
+
+  class SourceItemState {
+    constructor() {}
+
+    //第一次
+    init() {}
+
+    //當資料變化時，sourcetype變化會觸發、更改id會觸發
+    //檢查有無更改type，如果沒有，則更新值就好
+    //如果有則更改狀態
+    update() {}
+
+    //當更改sourcetype時會觸發，主要是訂閱
+    enter({ index, item }) {}
+
+    //當離開狀態時會觸發，主要是解除訂閱
+    exit() {}
+  }
+
+  class ItemState extends SourceItemState {
+    constructor() {}
+
+    init({ index, item }) {
+      //DOM 取得元素
+      this.textDbTitle = document.getElementById("text-dbTitle");
+      this.selectSourceType = document.getElementById("select-sourceType");
+      this.containerSourceItem = document.getElementById(
+        "container-sourceItem"
+      );
+
+      //setter
+      //HACK: 先用INDEX+1代替
+      this.textDbTitle.textContent =
+        model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
+      this.selectSourceType.value = item.sourceType;
+    }
+
+    update({ index, item }) {
+      //setter
+      //HACK: 先用INDEX+1代替
+      this.textDbTitle.textContent =
+        model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
+      this.selectSourceType.value = item.sourceType;
+    }
+  }
+
+  //有什麼元素
+  class SourceItemStateNotionPageID extends SourceItemState {
+    constructor() {}
+
+    init() {
+      this.enter();
+      this.update();
+    }
+
+    update() {}
+
+    enter({ index, item }) {}
+
+    exit() {}
+  }
+
+  class SourceItemStateNotionDatabaseID extends SourceItemState {
+    constructor() {}
+
+    init() {}
+
+    update() {}
+
+    enter({ index, item }) {}
+
+    exit() {}
+  }
+
+  class SourceItemStateManager {
+    constructor() {
+      //共同物件都會在這裡
+      this._itemState = new ItemState();
+      this._currentSourceType = null;
+      this._sourceItemState = null;
+      this.getStateByType = {
+        [model.SourceType.NOTION_PAGE_ID]: new SourceItemStateNotionPageID(),
+        [model.SourceType.NOTION_DATABASE_ID]:
+          new SourceItemStateNotionDatabaseID(),
+      };
+    }
+
+    //取得目前item資料
+    //判斷type
+    //初始化、綁定資料
+    init() {
+      viewModelInstance.getCurrentIndexItem(({ index, item }) => {
+        this.changeSourceItem(index, item);
+        this._itemState.init(index, item);
+        this._sourceItemState.init(index, item);
+      });
+    }
+
+    //檢查是否會更改狀態，如果有則更改狀態，如果沒有則更新值
+    updateItemView(index, item) {
+      if (item.sourceType !== this._currentSourceType) {
+        this.changeSourceItem(index, item);
+      }
+      this._itemState.update(index, item);
+      this._sourceItemState.update(index, item);
+    }
+
+    changeSourceItem(index, item) {
+      //Unsubscribe
+      if (this._sourceItemState) {
+        this._sourceItemState.exit();
+      }
+
+      //Subscribe
+      this._sourceItemState = this.getStateByType(item.sourceType);
+      this._sourceItemState.enter(index, item);
+    }
+  }
+
+  const sourceItemStateManager = new SourceItemStateManager();
+  //Init
+  sourceItemStateManager.init();
+  //Subscribe
+  viewModelInstance.subscribe(
+    viewModelInstance.EventType.VIEW_ITEM_NEED_CHANGED,
+    ({ index, item }) => {
+      sourceItemStateManager.updateItemView(index, item);
+    }
+  );
+  //sourceItemStateManager.getStateByType[]
 
   // TODO: 目前輸入id還無法儲存到database
 
