@@ -140,9 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
   buttonInitDb.addEventListener("click", () => {
     viewModelInstance.initDatabase();
   });
-  selectSourceType.addEventListener("change", () => {
-    viewModelInstance.whenViewItemSourceTypeChanged(selectSourceType.value);
-  });
 
   //可以從輸入Database id開始
   //繼續，流程如下：
@@ -164,167 +161,142 @@ document.addEventListener("DOMContentLoaded", () => {
     debug2: textIndexx,
   });
 
-  // INIT
-  viewModelInstance.getCurrentIndexItem(({ index, item }) => {
-    textDbTitle.textContent =
-      model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
-    selectSourceType.value = item.sourceType;
-    //Source Item
-    const template = document.getElementById(`sourceItem-${item.sourceType}`);
-    containerSourceItem.innerHTML = "";
-    const clone = template.content.cloneNode(true);
-    containerSourceItem.appendChild(clone);
-
-    switch (item.sourceType) {
-      case model.SourceType.NOTION_PAGE_ID:
-        const inputPageId = document.getElementById("input-pageId");
-        inputPageId.textContent = item.sourceItem.id;
-        break;
-      case model.SourceType.NOTION_DATABASE_ID:
-        const inputDbId = document.getElementById("input-dbId");
-        inputDbId.textContent = item.sourceItem.id;
-        break;
-
-      case model.SourceType.TEXT_FILE:
-        break;
-    }
-  });
-
-  //有訂閱的會傳key+callback
-  //改以狀態模式?
-  const sourceItemSubscribeCallback = {};
-  function unsubscribeItemElement() {
-    //目前託管的callback
-    sourceItemSubscribeCallback.array.forEach((element) => {});
-  }
-
-  viewModelInstance.subscribe(
-    viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-    ({ newItem, newIndex }) => {
-      //非Source Item
-      textDbTitle.textContent =
-        model.DisplayText.TITLE_DATABASE_PREFIX + (newIndex + 1);
-      selectSourceType.value = newItem.sourceType;
-
-      //Source Item
-      const template = document.getElementById(
-        `sourceItem-${newItem.sourceType}`
-      );
-      containerSourceItem.innerHTML = "";
-      const clone = template.content.cloneNode(true);
-      containerSourceItem.appendChild(clone);
-      switch (newItem.sourceType) {
-        case model.SourceType.NOTION_PAGE_ID:
-          const inputPageId = document.getElementById("input-pageId");
-          inputPageId.textContent = newItem.sourceItem.id;
-          break;
-
-        case model.SourceType.NOTION_DATABASE_ID:
-          const inputDbId = document.getElementById("input-dbId");
-          inputDbId.textContent = newItem.sourceItem.id;
-          break;
-
-        case model.SourceType.TEXT_FILE:
-          break;
-      }
-    }
-  );
-
   //根據SourceType，而有不同的ItemState
   class ItemState {
     constructor() {}
 
-    //第一次
-    init() {}
+    enter() {}
 
-    //當資料變化時，sourcetype變化會觸發、更改id會觸發
-    //檢查有無更改type，如果沒有，則更新值就好
-    //如果有則更改狀態
-    updateView() {}
+    exit() {}
 
-    //當更改sourcetype時會觸發，主要是訂閱
-    subscribe({ index, item }) {}
-
-    //當離開狀態時會觸發，主要是解除訂閱
-    unsubscribe() {}
-
-    bindUserInput() {}
-
-    unbindUserInput() {}
-  }
-
-  // class ItemState extends ItemState {
-  //   constructor() {}
-
-  //   init({ index, item }) {
-  //     //DOM 取得元素
-  //     this.textDbTitle = document.getElementById("text-dbTitle");
-  //     this.selectSourceType = document.getElementById("select-sourceType");
-  //     this.containerSourceItem = document.getElementById(
-  //       "container-sourceItem"
-  //     );
-
-  //     //setter
-  //     //HACK: 先用INDEX+1代替
-  //     this.textDbTitle.textContent =
-  //       model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
-  //     this.selectSourceType.value = item.sourceType;
-  //   }
-
-  //   updateView({ index, item }) {
-  //     //setter
-  //     //HACK: 先用INDEX+1代替
-  //     this.textDbTitle.textContent =
-  //       model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
-  //     this.selectSourceType.value = item.sourceType;
-  //   }
-  // }
-
-  //有什麼元素
-  class ItemStateNotionPageID extends ItemState {
-    constructor() {
-      this.textDbTitle = null;
-      this.selectSourceType = null;
-      this.containerSourceItem = null;
-    }
-
-    //一開始賦予初始值
-    init() {
-      //取得元素
-      this.getElement();
-
-      //賦予初始值
-      this.setElementValue();
-
-      //訂閱
-
-      //User Input綁定
-    }
-
-    //取得元素
     getElement() {
+      //每個state都有的元素
       this.textDbTitle = document.getElementById("text-dbTitle");
       this.selectSourceType = document.getElementById("select-sourceType");
-      this.containerSourceItem = document.getElementById(
-        "container-sourceItem"
-      );
     }
 
-    //賦予初始值
-    setElementValue() {
+    initValue() {
+      //HACK: 先用INDEX+1代替
+      //每個state都有的元素
       viewModelInstance.getCurrentIndexItem(({ index, item }) => {
-        //HACK: 先用INDEX+1代替
+        //根據state而有的元素
         this.textDbTitle.textContent =
           model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
         this.selectSourceType.value = item.sourceType;
       });
     }
 
-    updateView() {}
+    //它會自動擋重複的
+    subscribe() {
+      viewModelInstance.subscribe(
+        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+        this.updateView
+      );
+    }
 
-    subscribe({ index, item }) {}
+    unsubscribe() {
+      viewModelInstance.unsubscribe(
+        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+        this.updateView
+      );
+    }
 
-    unsubscribe() {}
+    updateView() {
+      //根據state而有的元素
+      this.textDbTitle.textContent =
+        model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
+      this.selectSourceType.value = item.sourceType;
+    }
+
+    updateDomElementFromTemplate(sourceType) {
+      const containerSourceItem = document.getElementById(
+        "container-sourceItem"
+      );
+      //銷毀template元素
+      const template = document.getElementById(`sourceItem-${sourceType}`);
+      containerSourceItem.innerHTML = "";
+      //新增template元素
+      const clone = template.content.cloneNode(true);
+      containerSourceItem.appendChild(clone);
+    }
+
+    bindUserInput() {
+      this.selectSourceType.addEventListener(
+        "change",
+        this.userInputSelectSourceType
+      );
+    }
+
+    unbindUserInput() {
+      this.selectSourceType.removeEventListener(
+        "change",
+        this.userInputSelectSourceType
+      );
+    }
+
+    userInputSelectSourceType() {
+      viewModelInstance.whenViewItemSourceTypeChanged(
+        this.selectSourceType.value
+      );
+    }
+  }
+
+  //有什麼元素
+  class ItemStateNotionPageID extends ItemState {
+    constructor() {
+      super();
+    }
+    enter() {
+      super.updateDomElementFromTemplate(model.SourceType.NOTION_PAGE_ID);
+
+      super.getElement();
+      this.getElement();
+
+      super.initValue();
+      this.initValue();
+
+      super.subscribe();
+      this.subscribe();
+
+      super.bindUserInput();
+      this.bindUserInput();
+    }
+
+    exit() {
+      super.unsubscribe();
+      this.unsubscribe();
+
+      super.unbindUserInput();
+      this.unbindUserInput();
+    }
+
+    getElement() {
+      this.inputPageId = document.getElementById("input-pageId");
+    }
+
+    initValue() {
+      viewModelInstance.getCurrentIndexItem(({ index, item }) => {
+        this.inputPageId.textContent = item.sourceItem.id;
+      });
+    }
+
+    subscribe() {
+      viewModelInstance.subscribe(
+        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+        this.updateView
+      );
+    }
+
+    unsubscribe() {
+      viewModelInstance.unsubscribe(
+        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+        this.updateView
+      );
+    }
+
+    updateView({ index, item }) {
+      this.inputPageId.textContent = item.sourceItem.id;
+    }
 
     bindUserInput() {}
 
@@ -332,15 +304,60 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   class ItemStateNotionDatabaseID extends ItemState {
-    constructor() {}
+    constructor() {
+      super();
+    }
+    enter() {
+      super.updateDomElementFromTemplate(model.SourceType.NOTION_DATABASE_ID);
 
-    init() {}
+      super.getElement();
+      this.getElement();
 
-    updateView() {}
+      super.initValue();
+      this.initValue();
 
-    subscribe({ index, item }) {}
+      super.subscribe();
+      this.subscribe();
 
-    unsubscribe() {}
+      super.bindUserInput();
+      this.bindUserInput();
+    }
+
+    exit() {
+      super.unsubscribe();
+      this.unsubscribe();
+
+      super.unbindUserInput();
+      this.unbindUserInput();
+    }
+
+    getElement() {
+      this.inputDbId = document.getElementById("input-dbId");
+    }
+
+    initValue() {
+      viewModelInstance.getCurrentIndexItem(({ index, item }) => {
+        this.inputDbId.textContent = item.sourceItem.id;
+      });
+    }
+
+    subscribe() {
+      viewModelInstance.subscribe(
+        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+        this.updateView
+      );
+    }
+
+    unsubscribe() {
+      viewModelInstance.unsubscribe(
+        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+        this.updateView
+      );
+    }
+
+    updateView({ index, item }) {
+      this.inputDbId.textContent = item.sourceItem.id;
+    }
 
     bindUserInput() {}
 
@@ -349,8 +366,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   class ItemStateManager {
     constructor() {
-      //共同物件都會在這裡
-      //this.currentSourceType = null;
       this.itemState = null;
       this.getStateByType = {
         [model.SourceType.NOTION_PAGE_ID]: new ItemStateNotionPageID(),
@@ -358,64 +373,33 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
 
-    getElement() {
-      this.itemState.getElement();
-    }
-
-    init() {
-      this.itemState.init();
-    }
-
-    subscribe() {
-      viewModelInstance.subscribe(
-        viewModelInstance.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.itemState.updateView
-      );
-    }
-
-    unsubscribe() {
-      viewModelInstance.subscribe(
-        viewModelInstance.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.itemState.updateView
-      );
-    }
-
-    bindUserInput() {
-      this.itemState.bindUserInput();
-    }
-
-    unbindUserInput() {
-      this.itemState.unbindUserInput();
-    }
-
     //這個函式會關注SourceType，只要他變化就變更State
     changeItemState(newSourceType) {
       //Unsubscribe/Unbind
       if (this.itemState) {
-        this.itemState.unsubscribe();
-        this.itemState.unbindUserInput();
+        this.itemState.exit();
       }
 
       //Subscribe/Bind
-      this.itemState = this.getStateByType(newSourceType);
-      this.itemState.init();
-      this.itemState.subscribe();
-      this.itemState.bindUserInput();
+      this.itemState = this.getStateByType[newSourceType];
+      this.itemState.enter();
     }
   }
 
   const itemStateManager = new ItemStateManager();
-  //GetElement
-  itemStateManager.getElement();
-
   //Init
-  itemStateManager.init();
+  viewModelInstance.getCurrentIndexItem(({ index, item }) => {
+    itemStateManager.changeItemState(item.sourceType);
+  });
 
   //Subscribe
-  itemStateManager.subscribe();
-
-  //UserInput
-  itemStateManager.bindUserInput();
+  //HACK: 拿區區一個SOURCETYPE，竟然需要拿整個資料庫
+  viewModelInstance.subscribe(
+    viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    ({ index, item }) => {
+      itemStateManager.changeItemState(item.sourceType);
+    }
+  );
 
   //sourceItemStateManager.getStateByType[]
 

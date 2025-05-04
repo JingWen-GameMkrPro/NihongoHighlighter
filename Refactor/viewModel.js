@@ -48,8 +48,8 @@ class viewModel {
     this.getData(model.DataType.DATABASE, (database) => {
       this.getData(model.DataType.DATABASE_INDEX, (index) => {
         this._notify(viewModel.EventType.VIEW_ITEM_NEED_CHANGED, {
-          newItem: database[index],
-          newIndex: index,
+          item: database[index],
+          index: index,
         });
       });
     });
