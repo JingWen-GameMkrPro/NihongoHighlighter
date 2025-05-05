@@ -186,22 +186,22 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    //它會自動擋重複的
-    subscribe() {
-      viewModelInstance.subscribe(
-        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.updateView
-      );
-    }
+    // //它會自動擋重複的
+    // subscribe() {
+    //   viewModelInstance.subscribe(
+    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    //     this.updateView
+    //   );
+    // }
 
-    unsubscribe() {
-      viewModelInstance.unsubscribe(
-        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.updateView
-      );
-    }
+    // unsubscribe() {
+    //   viewModelInstance.unsubscribe(
+    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    //     this.updateView
+    //   );
+    // }
 
-    updateView() {
+    updateView(index, item) {
       //根據state而有的元素
       this.textDbTitle.textContent =
         model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
@@ -234,10 +234,8 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
-    userInputSelectSourceType() {
-      viewModelInstance.whenViewItemSourceTypeChanged(
-        this.selectSourceType.value
-      );
+    userInputSelectSourceType(event) {
+      viewModelInstance.whenViewItemSourceTypeChanged(event.target.value);
     }
   }
 
@@ -255,16 +253,16 @@ document.addEventListener("DOMContentLoaded", () => {
       super.initValue();
       this.initValue();
 
-      super.subscribe();
-      this.subscribe();
+      //super.subscribe();
+      //this.subscribe();
 
       super.bindUserInput();
       this.bindUserInput();
     }
 
     exit() {
-      super.unsubscribe();
-      this.unsubscribe();
+      //super.unsubscribe();
+      //this.unsubscribe();
 
       super.unbindUserInput();
       this.unbindUserInput();
@@ -280,21 +278,22 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    subscribe() {
-      viewModelInstance.subscribe(
-        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.updateView
-      );
-    }
+    // subscribe() {
+    //   viewModelInstance.subscribe(
+    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    //     this.updateView
+    //   );
+    // }
 
-    unsubscribe() {
-      viewModelInstance.unsubscribe(
-        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.updateView
-      );
-    }
+    // unsubscribe() {
+    //   viewModelInstance.unsubscribe(
+    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    //     this.updateView
+    //   );
+    // }
 
-    updateView({ index, item }) {
+    updateView(index, item) {
+      super.updateView(index, item);
       this.inputPageId.textContent = item.sourceItem.id;
     }
 
@@ -316,16 +315,16 @@ document.addEventListener("DOMContentLoaded", () => {
       super.initValue();
       this.initValue();
 
-      super.subscribe();
-      this.subscribe();
+      // super.subscribe();
+      // this.subscribe();
 
       super.bindUserInput();
       this.bindUserInput();
     }
 
     exit() {
-      super.unsubscribe();
-      this.unsubscribe();
+      // super.unsubscribe();
+      // this.unsubscribe();
 
       super.unbindUserInput();
       this.unbindUserInput();
@@ -341,21 +340,22 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    subscribe() {
-      viewModelInstance.subscribe(
-        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.updateView
-      );
-    }
+    // subscribe() {
+    //   viewModelInstance.subscribe(
+    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    //     this.updateView
+    //   );
+    // }
 
-    unsubscribe() {
-      viewModelInstance.unsubscribe(
-        viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-        this.updateView
-      );
-    }
+    // unsubscribe() {
+    //   viewModelInstance.unsubscribe(
+    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
+    //     this.updateView
+    //   );
+    // }
 
-    updateView({ index, item }) {
+    updateView(index, item) {
+      super.updateView(index, item);
       this.inputDbId.textContent = item.sourceItem.id;
     }
 
@@ -367,10 +367,19 @@ document.addEventListener("DOMContentLoaded", () => {
   class ItemStateManager {
     constructor() {
       this.itemState = null;
+      this.itemType = null;
       this.getStateByType = {
         [model.SourceType.NOTION_PAGE_ID]: new ItemStateNotionPageID(),
         [model.SourceType.NOTION_DATABASE_ID]: new ItemStateNotionDatabaseID(),
       };
+    }
+
+    updateItemView(index, item) {
+      //判斷是否要change item state
+      if (item.sourceType !== this.itemType) {
+        this.changeItemState(item.sourceType);
+      }
+      this.itemState.updateView(index, item);
     }
 
     //這個函式會關注SourceType，只要他變化就變更State
@@ -382,6 +391,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       //Subscribe/Bind
       this.itemState = this.getStateByType[newSourceType];
+      this.itemType = newSourceType;
       this.itemState.enter();
     }
   }
@@ -397,7 +407,8 @@ document.addEventListener("DOMContentLoaded", () => {
   viewModelInstance.subscribe(
     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
     ({ index, item }) => {
-      itemStateManager.changeItemState(item.sourceType);
+      itemStateManager.updateItemView(index, item);
+      //itemStateManager.changeItemState(item.sourceType);
     }
   );
 
