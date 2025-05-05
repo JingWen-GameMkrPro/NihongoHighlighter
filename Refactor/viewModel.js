@@ -59,6 +59,16 @@ class viewModel {
     this._model.setData(dataType, value);
   }
 
+  //設定Item的值
+  setItemData(target, value) {
+    this._model.setItemData(target, value);
+  }
+
+  //設定sourceItem的值
+  setSourceItemData(target, value) {
+    this._model.setSourceItemData(target, value);
+  }
+
   getData(dataType, callback) {
     this._model.getData(dataType, callback);
   }
@@ -179,10 +189,6 @@ class viewModel {
         }
       });
     });
-  }
-
-  whenViewItemSourceTypeChanged(newSourceType) {
-    this._model.changeItemSourceType(newSourceType);
   }
 
   //檢查callback是否有訂閱target，匿名函式無法查詢

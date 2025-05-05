@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
   //DEBUG: 顯示目前index
   viewModelInstance.subscribe(model.DataType.DATABASE_INDEX, updateTextIndex);
   //DEBUG: 顯示目前資料庫大小
-  viewModelInstance.subscribe(updateTextIndexx);
+  viewModelInstance.subscribe(model.DataType.DATABASE, updateTextIndexx);
 
   //UserInput
   checkboxIsSaveToken.addEventListener("change", (e) => {
@@ -186,21 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // //它會自動擋重複的
-    // subscribe() {
-    //   viewModelInstance.subscribe(
-    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-    //     this.updateView
-    //   );
-    // }
-
-    // unsubscribe() {
-    //   viewModelInstance.unsubscribe(
-    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-    //     this.updateView
-    //   );
-    // }
-
     updateView(index, item) {
       //根據state而有的元素
       this.textDbTitle.textContent =
@@ -223,19 +208,19 @@ document.addEventListener("DOMContentLoaded", () => {
     bindUserInput() {
       this.selectSourceType.addEventListener(
         "change",
-        this.userInputSelectSourceType
+        this.userInputSourceTypeChange
       );
     }
 
     unbindUserInput() {
       this.selectSourceType.removeEventListener(
         "change",
-        this.userInputSelectSourceType
+        this.userInputSourceTypeChange
       );
     }
 
-    userInputSelectSourceType(event) {
-      viewModelInstance.whenViewItemSourceTypeChanged(event.target.value);
+    userInputSourceTypeChange(event) {
+      viewModelInstance.setItemData("sourceType", event.target.value);
     }
   }
 
@@ -253,17 +238,11 @@ document.addEventListener("DOMContentLoaded", () => {
       super.initValue();
       this.initValue();
 
-      //super.subscribe();
-      //this.subscribe();
-
       super.bindUserInput();
       this.bindUserInput();
     }
 
     exit() {
-      //super.unsubscribe();
-      //this.unsubscribe();
-
       super.unbindUserInput();
       this.unbindUserInput();
     }
@@ -274,32 +253,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initValue() {
       viewModelInstance.getCurrentIndexItem(({ index, item }) => {
-        this.inputPageId.textContent = item.sourceItem.id;
+        this.inputPageId.value = item.sourceItem.id;
       });
     }
 
-    // subscribe() {
-    //   viewModelInstance.subscribe(
-    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-    //     this.updateView
-    //   );
-    // }
-
-    // unsubscribe() {
-    //   viewModelInstance.unsubscribe(
-    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-    //     this.updateView
-    //   );
-    // }
-
     updateView(index, item) {
       super.updateView(index, item);
-      this.inputPageId.textContent = item.sourceItem.id;
+      this.inputPageId.value = item.sourceItem.id;
     }
 
-    bindUserInput() {}
+    bindUserInput() {
+      this.inputPageId.addEventListener("change", this.userInputPageIdChange);
+    }
 
-    unbindUserInput() {}
+    unbindUserInput() {
+      this.inputPageId.removeEventListener(
+        "change",
+        this.userInputPageIdChange
+      );
+    }
+
+    userInputPageIdChange(event) {
+      viewModelInstance.setSourceItemData("id", event.target.value);
+    }
   }
 
   class ItemStateNotionDatabaseID extends ItemState {
@@ -315,17 +291,11 @@ document.addEventListener("DOMContentLoaded", () => {
       super.initValue();
       this.initValue();
 
-      // super.subscribe();
-      // this.subscribe();
-
       super.bindUserInput();
       this.bindUserInput();
     }
 
     exit() {
-      // super.unsubscribe();
-      // this.unsubscribe();
-
       super.unbindUserInput();
       this.unbindUserInput();
     }
@@ -336,32 +306,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initValue() {
       viewModelInstance.getCurrentIndexItem(({ index, item }) => {
-        this.inputDbId.textContent = item.sourceItem.id;
+        this.inputDbId.value = item.sourceItem.id;
       });
     }
 
-    // subscribe() {
-    //   viewModelInstance.subscribe(
-    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-    //     this.updateView
-    //   );
-    // }
-
-    // unsubscribe() {
-    //   viewModelInstance.unsubscribe(
-    //     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
-    //     this.updateView
-    //   );
-    // }
-
     updateView(index, item) {
       super.updateView(index, item);
-      this.inputDbId.textContent = item.sourceItem.id;
+      this.inputDbId.value = item.sourceItem.id;
     }
 
-    bindUserInput() {}
+    bindUserInput() {
+      this.inputDbId.addEventListener("change", this.userInputDbIdChange);
+    }
 
-    unbindUserInput() {}
+    unbindUserInput() {
+      this.inputDbId.removeEventListener("change", this.userInputDbIdChange);
+    }
+
+    userInputDbIdChange(event) {
+      viewModelInstance.setSourceItemData("id", event.target.value);
+    }
   }
 
   class ItemStateManager {
@@ -399,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const itemStateManager = new ItemStateManager();
   //Init
   viewModelInstance.getCurrentIndexItem(({ index, item }) => {
-    itemStateManager.changeItemState(item.sourceType);
+    itemStateManager.updateItemView(index, item);
   });
 
   //Subscribe
@@ -408,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
     viewModel.EventType.VIEW_ITEM_NEED_CHANGED,
     ({ index, item }) => {
       itemStateManager.updateItemView(index, item);
-      //itemStateManager.changeItemState(item.sourceType);
     }
   );
 

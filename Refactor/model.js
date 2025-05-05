@@ -105,14 +105,44 @@ class model {
   }
 
   //改變目前index的來源物件類型
-  changeItemSourceType(newSourceType) {
+  //HACK: 變得更泛用一點
+  //更改類型的時候，source資料的部分自動初始化
+  // changeItemSourceType(newSourceType) {
+  //   this.getData(model.DataType.DATABASE_INDEX, (index) => {
+  //     this.getData(model.DataType.DATABASE, (database) => {
+  //       const newItem = new model.DatabaseItemStruct({
+  //         sourceType: newSourceType,
+  //         existData: database[index],
+  //       });
+  //       database[index] = newItem;
+  //       this.setData(model.DataType.DATABASE, database);
+  //     });
+  //   });
+  // }
+
+  setItemData(target, value) {
     this.getData(model.DataType.DATABASE_INDEX, (index) => {
       this.getData(model.DataType.DATABASE, (database) => {
-        const newItem = new model.DatabaseItemStruct({
-          sourceType: newSourceType,
-          existData: database[index],
-        });
-        database[index] = newItem;
+        if (target in database[index]) {
+          if (target === "sourceType") {
+            database[index].sourceType = value;
+            //如果是source type，則source資料的部分自動初始化
+            database[index].sourceItem = this.returnSourceItemByType(value);
+          } else {
+            database[index][target] = value;
+          }
+        }
+        this.setData(model.DataType.DATABASE, database);
+      });
+    });
+  }
+
+  setSourceItemData(target, value) {
+    this.getData(model.DataType.DATABASE_INDEX, (index) => {
+      this.getData(model.DataType.DATABASE, (database) => {
+        if (target in database[index].sourceItem) {
+          database[index].sourceItem[target] = value;
+        }
         this.setData(model.DataType.DATABASE, database);
       });
     });
@@ -141,6 +171,19 @@ class model {
       }
     }
   };
+
+  returnSourceItemByType(sourceType) {
+    switch (sourceType) {
+      case model.SourceType.NOTION_PAGE_ID:
+        return new model.SourceItemNotionPageIdStruct();
+      case model.SourceType.NOTION_DATABASE_ID:
+        return new model.SourceItemNotionDatabaseIdStruct();
+      case model.SourceType.TEXT_FILE:
+        throw new Error(`Unknown source type: ${sourceType}`);
+      default:
+        throw new Error(`Unknown source type: ${sourceType}`);
+    }
+  }
 
   static SourceItemNotionPageIdStruct = class {
     constructor() {
