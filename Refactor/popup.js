@@ -269,21 +269,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     getElement() {
       this.inputPageId = document.getElementById("input-pageId");
+      this.inputApiToken = document.getElementById("input-apiToken");
     }
 
     initValue() {
       viewModelInstance.getCurrentIndexItem(({ index, item }) => {
         this.inputPageId.value = item.sourceItem.id;
+        this.inputApiToken.value = item.sourceItem.apiToken;
       });
     }
 
     updateView(index, item) {
       super.updateView(index, item);
       this.inputPageId.value = item.sourceItem.id;
+      this.inputApiToken.value = item.sourceItem.apiToken;
     }
 
     bindUserInput() {
       this.inputPageId.addEventListener("change", this.userInputPageIdChange);
+      this.inputApiToken.addEventListener(
+        "change",
+        this.userInputApiTokenChange
+      );
     }
 
     unbindUserInput() {
@@ -291,11 +298,19 @@ document.addEventListener("DOMContentLoaded", () => {
         "change",
         this.userInputPageIdChange
       );
+      this.inputApiToken.removeEventListener(
+        "change",
+        this.userInputApiTokenChange
+      );
     }
 
     //HACK: 需要檢查是否有重複ID
     userInputPageIdChange(event) {
       viewModelInstance.setSourceItemData("id", event.target.value);
+    }
+
+    userInputApiTokenChange(event) {
+      viewModelInstance.setSourceItemData("apiToken", event.target.value);
     }
   }
 

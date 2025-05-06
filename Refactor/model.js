@@ -188,6 +188,7 @@ class model {
   static SourceItemNotionPageIdStruct = class {
     constructor() {
       //使用者可以自行更改?
+      this.apiToken = "";
       this.id = "";
       this.splitSymbol = "/";
     }
