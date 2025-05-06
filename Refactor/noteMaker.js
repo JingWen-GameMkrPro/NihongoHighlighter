@@ -7,6 +7,7 @@ class NoteMaker {
     switch (currentIndexItem.item.sourceType) {
       case model.SourceType.NOTION_PAGE_ID:
         const notionJson = await this.fetchNotionPage(
+          //HACK: NOTION TOKEN 應該移轉到各自的資料庫ITEM項目
           "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",
           currentIndexItem.item.sourceItem.id
         );

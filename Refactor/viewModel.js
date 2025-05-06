@@ -187,6 +187,7 @@ class viewModel {
     });
   }
 
+  //HACK: 此函式的方式可以考慮取代目前所有GET DATA方式，利用PROMISE
   async asyncGetCurrentIndexItem(callback) {
     const index = await new Promise((resolve) => {
       this._model.getData(model.DataType.DATABASE_INDEX, (index) =>
