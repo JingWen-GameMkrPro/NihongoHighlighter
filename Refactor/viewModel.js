@@ -2,17 +2,13 @@ class viewModel {
   constructor(model) {
     this._model = model;
     this._subscribers = {};
-    this._datas = {};
-    // //Chrome Storage Local Datas
-    // this._datas.push({ isSaveToken: false });
-    // this._datas.push({ token: "" });
+    this.noteMakerInstance = new NoteMaker();
 
     //我想關注...資料，資料一變化就執行...
     this._init();
   }
   _init() {
     this._model.subscribe(model.DataType.TOKEN, (newValue) => {
-      //this._datas[model.DataType.TOKEN] = newValue; //有必要存在?
       this._notify(model.DataType.TOKEN, newValue);
     });
 
@@ -189,6 +185,22 @@ class viewModel {
         }
       });
     });
+  }
+
+  async asyncGetCurrentIndexItem(callback) {
+    const index = await new Promise((resolve) => {
+      this._model.getData(model.DataType.DATABASE_INDEX, (index) =>
+        resolve(index)
+      );
+    });
+
+    const database = await new Promise((resolve) => {
+      this._model.getData(model.DataType.DATABASE, (database) =>
+        resolve(database)
+      );
+    });
+
+    return { index, item: database[index] };
   }
 
   //檢查callback是否有訂閱target，匿名函式無法查詢

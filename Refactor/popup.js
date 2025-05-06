@@ -35,6 +35,9 @@ document.addEventListener("DOMContentLoaded", () => {
   //DEBUG
   const textIndexx = document.getElementById("indexx");
 
+  //MakeNote
+  const buttonUpdateNote = document.getElementById("button-updateNote");
+
   function updateTokenView(newValue) {
     inputNotionToken.value = newValue || "";
   }
@@ -140,6 +143,23 @@ document.addEventListener("DOMContentLoaded", () => {
   buttonInitDb.addEventListener("click", () => {
     viewModelInstance.initDatabase();
   });
+
+  buttonUpdateNote.addEventListener("click", () => {
+    clickedButtonUpdateNote(buttonUpdateNote);
+  });
+
+  async function clickedButtonUpdateNote(button) {
+    button.disabled = true;
+    try {
+      await viewModelInstance.noteMakerInstance.updateNote();
+
+      //await viewModelInstance.noteMakerInstance.updateNote();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      button.disabled = false;
+    }
+  }
 
   //可以從輸入Database id開始
   //繼續，流程如下：
@@ -273,6 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
+    //HACK: 需要檢查是否有重複ID
     userInputPageIdChange(event) {
       viewModelInstance.setSourceItemData("id", event.target.value);
     }
