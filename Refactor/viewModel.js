@@ -209,6 +209,15 @@ class viewModel {
     return this._subscribers[target]?.includes(callback) ?? false;
   }
 
+  async updateNote() {
+    const result = await this.noteMakerInstance.fetchNote();
+    const index = await this._model.getDataAsync(model.DataType.DATABASE_INDEX);
+    const database = await this._model.getDataAsync(model.DataType.DATABASE);
+    database[index].notes = result.notes;
+    database[index].wrongs = result.wrongBlocks;
+    await this._model.setDataAsync(model.DataType.DATABASE, database);
+  }
+
   //初始化所有VIEW資料
   initView({
     token,

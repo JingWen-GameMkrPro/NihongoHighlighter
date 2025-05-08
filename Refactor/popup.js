@@ -151,9 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function clickedButtonUpdateNote(button) {
     button.disabled = true;
     try {
-      await viewModelInstance.noteMakerInstance.updateNote();
-
-      //await viewModelInstance.noteMakerInstance.updateNote();
+      await viewModelInstance.updateNote();
     } catch (e) {
       console.error(e);
     } finally {

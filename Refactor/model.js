@@ -31,6 +31,19 @@ class model {
     });
   }
 
+  async setDataAsync(dataType, value) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [dataType]: value }, () => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          this._notify(dataType, value);
+          resolve();
+        }
+      });
+    });
+  }
+
   getData(dataType, callback) {
     chrome.storage.local.get([dataType], (res) => {
       if (res[dataType] !== undefined) {
@@ -38,6 +51,18 @@ class model {
       } else {
         callback(undefined);
       }
+    });
+  }
+
+  async getDataAsync(dataType) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get([dataType], (res) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(res[dataType]); // 如果沒找到就是 undefined
+        }
+      });
     });
   }
 
@@ -157,6 +182,9 @@ class model {
       this.name = existData?.name ?? "";
       this.sourceType = sourceType;
       this.sourceItem = this._returnSourceItemByType(sourceType);
+
+      this.notes = [];
+      this.wrongs = [];
     }
     _returnSourceItemByType(sourceType) {
       switch (sourceType) {

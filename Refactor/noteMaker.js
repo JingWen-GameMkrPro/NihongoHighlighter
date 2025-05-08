@@ -1,6 +1,6 @@
 //該class負責筆記建置相關功能
 class NoteMaker {
-  async updateNote() {
+  async fetchNote() {
     //取得
     const currentIndexItem = await viewModelInstance.asyncGetCurrentIndexItem();
 
@@ -16,7 +16,10 @@ class NoteMaker {
         );
         console.log(transformResult.Notes);
         console.log(transformResult.WrongBlocks);
-
+        return {
+          notes: transformResult.Notes,
+          wrongBlocks: transformResult.WrongBlocks,
+        };
         break;
       default:
         break;
