@@ -7,15 +7,16 @@ class NoteMaker {
     switch (currentIndexItem.item.sourceType) {
       case model.SourceType.NOTION_PAGE_ID:
         const notionJson = await this.fetchNotionPageJson(
-          //HACK: NOTION TOKEN 應該移轉到各自的資料庫ITEM項目
           currentIndexItem.item.sourceItem.apiToken,
           currentIndexItem.item.sourceItem.id
         );
         const transformResult = await this.transformNotionPageJsonToNote(
+          currentIndexItem.item,
           notionJson
         );
         console.log(transformResult.Notes);
         console.log(transformResult.WrongBlocks);
+
         break;
       default:
         break;
@@ -23,7 +24,7 @@ class NoteMaker {
   }
 
   //NOTE: 此函式高度依賴於NOTION本身的JSON結構
-  async transformNotionPageJsonToNote(notionPageJson) {
+  async transformNotionPageJsonToNote(item, notionPageJson) {
     const Notes = [];
     const WrongBlocks = [];
 
@@ -35,7 +36,7 @@ class NoteMaker {
       //再來是否可以分割
       const divideResult = this.tryDivideStrBySymbol(
         block.paragraph.rich_text[0].plain_text,
-        "/"
+        item.sourceItem.splitSymbol
       );
       if (divideResult.isSuccess) {
         const infos = this.transformPageBlockValueToInfos(divideResult.part2);
