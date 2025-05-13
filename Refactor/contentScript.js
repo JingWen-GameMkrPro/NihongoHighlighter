@@ -1,67 +1,65 @@
-const placeholderColorMap = {
-  GREEN: "rgb(0, 69, 0)",
-  RED: "rgb(92, 0, 0)",
-  BLUE: "rgb(0, 32, 65)",
-};
-
-function getSharedTooltip() {
-  if (!window.sharedTooltip) {
-    window.sharedTooltip = document.createElement("div");
-    window.sharedTooltip.className = "shared-tooltip";
-    window.sharedTooltip.style.position = "absolute";
-    window.sharedTooltip.style.padding = "8px 12px";
-    window.sharedTooltip.style.background =
-      "linear-gradient(135deg, #000000, #1a1a1a)";
-    window.sharedTooltip.style.color = "#f0f0f0";
-    window.sharedTooltip.style.borderRadius = "8px";
-    window.sharedTooltip.style.fontSize = "14px";
-    window.sharedTooltip.style.fontFamily =
-      "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-    window.sharedTooltip.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.5)";
-    window.sharedTooltip.style.zIndex = 10000;
-    window.sharedTooltip.style.pointerEvents = "none";
-    window.sharedTooltip.style.whiteSpace = "pre-line";
-    window.sharedTooltip.style.transition = "opacity 0.2s ease";
-    window.sharedTooltip.style.opacity = "0";
-    document.body.appendChild(window.sharedTooltip);
+function collectAllMatches(text, trie) {
+  const matches = [];
+  const lower = text.toLowerCase();
+  for (let i = 0; i < lower.length; i++) {
+    let node = trie;
+    for (let j = i; j < lower.length; j++) {
+      const ch = lower[j];
+      if (!node.children?.[ch]) break;
+      node = node.children[ch];
+      if (node.isEnd) {
+        matches.push({ start: i, end: j + 1, infos: node.infos });
+      }
+    }
   }
-  return window.sharedTooltip;
+  return matches;
 }
 
-function processInfo(info) {
-  switch(info)
-  {
-    case 
+function highlightTextNode(node, matches) {
+  matches.sort((a, b) => a.start - b.start || b.end - a.end);
+  const frag = document.createDocumentFragment();
+  const txt = node.nodeValue;
+  let cursor = 0;
+  for (const { start, end, infos } of matches) {
+    if (start > cursor) {
+      frag.appendChild(document.createTextNode(txt.slice(cursor, start)));
+    }
+    const span = document.createElement("span");
+    span.className = "highlight";
+    //span.dataset.tooltip = tip; // <- 放到 data-tooltip
+    span.textContent = txt.slice(start, end);
+    let tip = "";
+    for (const i of infos) {
+      for (const j of i) {
+        tip += j.content + "\n";
+      }
+      tip += "----------------\n";
+    }
 
-  }
-  .replace(
-    /__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
-    `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`
-  );
-  line = line.replace(
-    /__PLACEHOLDER_RED__(.*?)__ENDPLACEHOLDER__/g,
-    `<div style="background-color: ${placeholderColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`
-  );
-  line = line.replace(
-    /__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
-    `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`
-  );
-  if (!line.includes("__PLACEHOLDER_")) {
-    line = `<div style="padding:2px 0;">${line}</div>`;
-  }
-  return line;
-}
+    span.addEventListener("mouseover", (e) => {
+      const toolTip = getSharedTooltip();
+      console.log(infos[0].content);
+      toolTip.innerhtml = infos[0].content;
+      let posX = e.pageX;
+      let posY = e.pageY + 10;
+      toolTip.style.left = posX + "px";
+      toolTip.style.top = posY + "px";
+      toolTip.style.opacity = "1";
+      setTimeout(adjustTooltipPosition, 0);
+    });
 
-function buildTooltipString(keyword, infoData) {
-  let html = `<div style="padding:4px 0; margin-bottom:4px; font-weight: bold;">${keyword}</div>`;
-  html += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
-  if (infoData["sub-name"]) {
-    html += processInfo(infoData["sub-name"]);
+    span.addEventListener("mouseout", () => {
+      const tooltip = getSharedTooltip();
+      tooltip.style.opacity = "0";
+    });
+
+    frag.appendChild(span);
+    cursor = end;
   }
-  if (infoData["description"]) {
-    html += processInfo(infoData["description"]);
+  if (cursor < txt.length) {
+    frag.appendChild(document.createTextNode(txt.slice(cursor)));
   }
-  return html;
+  node.parentNode.replaceChild(frag, node);
 }
 
 function adjustTooltipPosition() {
@@ -85,59 +83,29 @@ function adjustTooltipPosition() {
   tooltip.style.left = currentLeft + "px";
   tooltip.style.top = currentTop + "px";
 }
-
-function collectAllMatches(text, trie) {
-  const matches = [];
-  const lower = text.toLowerCase();
-  for (let i = 0; i < lower.length; i++) {
-    let node = trie;
-    for (let j = i; j < lower.length; j++) {
-      const ch = lower[j];
-      if (!node.children?.[ch]) break;
-      node = node.children[ch];
-      if (node.isEnd) {
-        matches.push({ start: i, end: j + 1, infos: node.infos });
-        // for (const infos of node.infos) {
-        //   matches.push({ start: i, end: j + 1, infos });
-        // }
-      }
-    }
+function getSharedTooltip() {
+  if (!window.sharedTooltip) {
+    window.sharedTooltip = document.createElement("div");
+    window.sharedTooltip.className = "shared-tooltip";
+    window.sharedTooltip.style.position = "absolute";
+    window.sharedTooltip.style.padding = "8px 12px";
+    window.sharedTooltip.style.background =
+      "linear-gradient(135deg, #000000, #1a1a1a)";
+    window.sharedTooltip.style.color = "#f0f0f0";
+    window.sharedTooltip.style.borderRadius = "8px";
+    window.sharedTooltip.style.fontSize = "14px";
+    window.sharedTooltip.style.fontFamily =
+      "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    window.sharedTooltip.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.5)";
+    window.sharedTooltip.style.zIndex = 10000;
+    window.sharedTooltip.style.pointerEvents = "none";
+    window.sharedTooltip.style.whiteSpace = "pre-line";
+    window.sharedTooltip.style.transition = "opacity 0.2s ease";
+    window.sharedTooltip.style.opacity = "0";
+    document.body.appendChild(window.sharedTooltip);
   }
-  return matches;
+  return window.sharedTooltip;
 }
-
-function highlightTextNode(node, matches) {
-  matches.sort((a, b) => a.start - b.start || b.end - a.end);
-  const frag = document.createDocumentFragment();
-  const txt = node.nodeValue;
-  let cursor = 0;
-  for (const { start, end, infos } of matches) {
-    if (start > cursor) {
-      frag.appendChild(document.createTextNode(txt.slice(cursor, start)));
-    }
-    const span = document.createElement("span");
-    span.className = "highlight";
-    console.log(infos);
-    let tip = "";
-    for (const i of infos) {
-      for (const j of i) {
-        tip += j.content + "\n";
-      }
-      tip += "----------------\n";
-    }
-
-    //const tip = infos.join(" - ");
-    span.dataset.tooltip = tip; // <- 放到 data-tooltip
-    span.textContent = txt.slice(start, end);
-    frag.appendChild(span);
-    cursor = end;
-  }
-  if (cursor < txt.length) {
-    frag.appendChild(document.createTextNode(txt.slice(cursor)));
-  }
-  node.parentNode.replaceChild(frag, node);
-}
-
 function highlightAll(root, trie) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (n) =>
