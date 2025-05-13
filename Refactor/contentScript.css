@@ -1,0 +1,18 @@
+.highlight {
+  background-color: yellow !important;
+}
+/* 滑鼠 hover 時顯示 tooltip */
+.highlight:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 100%; /* 從文字底下彈出 */
+  left: 0;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  z-index: 9999;
+  margin-top: 2px;
+}

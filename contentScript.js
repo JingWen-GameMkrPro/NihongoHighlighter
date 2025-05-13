@@ -1,7 +1,7 @@
 const placeholderColorMap = {
   GREEN: "rgb(0, 69, 0)",
   RED: "rgb(92, 0, 0)",
-  BLUE: "rgb(0, 32, 65)"
+  BLUE: "rgb(0, 32, 65)",
 };
 
 function getSharedTooltip() {
@@ -10,11 +10,13 @@ function getSharedTooltip() {
     window.sharedTooltip.className = "shared-tooltip";
     window.sharedTooltip.style.position = "absolute";
     window.sharedTooltip.style.padding = "8px 12px";
-    window.sharedTooltip.style.background = "linear-gradient(135deg, #000000, #1a1a1a)";
+    window.sharedTooltip.style.background =
+      "linear-gradient(135deg, #000000, #1a1a1a)";
     window.sharedTooltip.style.color = "#f0f0f0";
     window.sharedTooltip.style.borderRadius = "8px";
     window.sharedTooltip.style.fontSize = "14px";
-    window.sharedTooltip.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    window.sharedTooltip.style.fontFamily =
+      "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
     window.sharedTooltip.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.5)";
     window.sharedTooltip.style.zIndex = 10000;
     window.sharedTooltip.style.pointerEvents = "none";
@@ -26,13 +28,19 @@ function getSharedTooltip() {
   return window.sharedTooltip;
 }
 
-function processLine(line) {
-  line = line.replace(/__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
-    `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-  line = line.replace(/__PLACEHOLDER_RED__(.*?)__ENDPLACEHOLDER__/g,
-    `<div style="background-color: ${placeholderColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
-  line = line.replace(/__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
-    `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`);
+function processInfo(line) {
+  line = line.replace(
+    /__PLACEHOLDER_GREEN__(.*?)__ENDPLACEHOLDER__/g,
+    `<div style="background-color: ${placeholderColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`
+  );
+  line = line.replace(
+    /__PLACEHOLDER_RED__(.*?)__ENDPLACEHOLDER__/g,
+    `<div style="background-color: ${placeholderColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`
+  );
+  line = line.replace(
+    /__PLACEHOLDER_BLUE__(.*?)__ENDPLACEHOLDER__/g,
+    `<div style="background-color: ${placeholderColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">$1</div>`
+  );
   if (!line.includes("__PLACEHOLDER_")) {
     line = `<div style="padding:2px 0;">${line}</div>`;
   }
@@ -43,10 +51,10 @@ function buildTooltipString(keyword, infoData) {
   let html = `<div style="padding:4px 0; margin-bottom:4px; font-weight: bold;">${keyword}</div>`;
   html += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
   if (infoData["sub-name"]) {
-    html += processLine(infoData["sub-name"]);
+    html += processInfo(infoData["sub-name"]);
   }
   if (infoData["description"]) {
-    html += processLine(infoData["description"]);
+    html += processInfo(infoData["description"]);
   }
   return html;
 }
@@ -58,13 +66,13 @@ function adjustTooltipPosition() {
   let currentTop = parseInt(tooltip.style.top, 10) || 0;
   const margin = 10;
   if (rect.right > window.innerWidth) {
-    currentLeft -= (rect.right - window.innerWidth) + margin;
+    currentLeft -= rect.right - window.innerWidth + margin;
   }
   if (rect.left < 0) {
     currentLeft = margin;
   }
   if (rect.bottom > window.innerHeight) {
-    currentTop -= (rect.bottom - window.innerHeight) + margin;
+    currentTop -= rect.bottom - window.innerHeight + margin;
   }
   if (rect.top < 0) {
     currentTop = margin;
@@ -88,7 +96,11 @@ function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33") {
+function highlightAll(
+  keyValues,
+  root = document.body,
+  highlightColor = "#ffff33"
+) {
   if (!keyValues || keyValues.length === 0) return;
   const mapping = {};
   const keys = [];
@@ -101,12 +113,17 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
   const pattern = keys.map(escapeRegExp).join("|");
   const regex = new RegExp(`(${pattern})`, "gi");
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode: function(node) {
-      if (node.parentNode && ["SCRIPT", "STYLE", "IFRAME", "CANVAS", "SVG"].includes(node.parentNode.nodeName)) {
+    acceptNode: function (node) {
+      if (
+        node.parentNode &&
+        ["SCRIPT", "STYLE", "IFRAME", "CANVAS", "SVG"].includes(
+          node.parentNode.nodeName
+        )
+      ) {
         return NodeFilter.FILTER_REJECT;
       }
       return NodeFilter.FILTER_ACCEPT;
-    }
+    },
   });
   const matchingNodes = [];
   let currentNode;
@@ -115,7 +132,7 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
       matchingNodes.push(currentNode);
     }
   }
-  matchingNodes.forEach(node => {
+  matchingNodes.forEach((node) => {
     const text = node.nodeValue;
     const frag = document.createDocumentFragment();
     let lastIndex = 0;
@@ -125,7 +142,9 @@ function highlightAll(keyValues, root = document.body, highlightColor = "#ffff33
       const matchStart = match.index;
       const matchEnd = regex.lastIndex;
       if (matchStart > lastIndex) {
-        frag.appendChild(document.createTextNode(text.slice(lastIndex, matchStart)));
+        frag.appendChild(
+          document.createTextNode(text.slice(lastIndex, matchStart))
+        );
       }
       const span = document.createElement("span");
       span.className = "highlighted";
@@ -189,20 +208,27 @@ function updateHighlightsFromStorage() {
     const color = result.highlightColor || "#ffff33";
     const finalCombined = {};
     // 跨資料庫重複 key 用分隔線合併，且前面標示來源
-    notionDatabases.forEach(db => {
+    notionDatabases.forEach((db) => {
       if (db.jsonData && typeof db.jsonData === "object") {
         for (const [key, val] of Object.entries(db.jsonData)) {
           if (!finalCombined[key]) {
-            finalCombined[key] = { description: `<span style="color: gray; font-size: 10px;">From: ${db.pageTitle}</span>\n${val.description}` };
+            finalCombined[key] = {
+              description: `<span style="color: gray; font-size: 10px;">From: ${db.pageTitle}</span>\n${val.description}`,
+            };
           } else {
-            finalCombined[key].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"><span style="color: gray; font-size: 10px;">From: ${db.pageTitle}</span>
+            finalCombined[
+              key
+            ].description += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"><span style="color: gray; font-size: 10px;">From: ${db.pageTitle}</span>
 ${val.description}`;
           }
         }
       }
     });
     if (Object.keys(finalCombined).length > 0) {
-      const keyValues = Object.entries(finalCombined).map(([key, value]) => ({ key, value }));
+      const keyValues = Object.entries(finalCombined).map(([key, value]) => ({
+        key,
+        value,
+      }));
       highlightAll(keyValues, document.body, color);
     }
   });
@@ -212,9 +238,9 @@ window.addEventListener("load", updateHighlightsFromStorage);
 window.addEventListener("popstate", updateHighlightsFromStorage);
 window.addEventListener("hashchange", updateHighlightsFromStorage);
 
-(function(history) {
+(function (history) {
   const pushState = history.pushState;
-  history.pushState = function(state) {
+  history.pushState = function (state) {
     const ret = pushState.apply(history, arguments);
     window.dispatchEvent(new Event("popstate"));
     return ret;
