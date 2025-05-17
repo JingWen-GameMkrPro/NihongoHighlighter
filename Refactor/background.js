@@ -9,9 +9,49 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && /^https?:/.test(tab.url)) {
     // 發一個自訂訊息，把 raw database 推給 content
     await init();
-    chrome.tabs.sendMessage(tabId, {
-      action: "HIGHLIGHT",
-      trie,
+    if (isHighlightMode === true) {
+      chrome.tabs.sendMessage(tabId, {
+        action: "HIGHLIGHT",
+        trie,
+      });
+    }
+  }
+});
+
+function sendTabMessage() {
+  // 通知目前前景分頁
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs.length === 0) return;
+    const tabId = tabs[0].id;
+    if (isHighlightMode === true) {
+      chrome.tabs.sendMessage(tabId, {
+        action: "HIGHLIGHT",
+        trie,
+      });
+    } else {
+      chrome.tabs.sendMessage(tabId, {
+        action: "UNHIGHLIGHT",
+      });
+    }
+  });
+}
+
+//被動收到是否HIGHLIGHT事件
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === "popup-background") {
+    port.onMessage.addListener(async (msg) => {
+      console.log("收到");
+      switch (msg.cmd) {
+        case "MODE_UPDATE":
+          isHighlightMode = await getChromeDataAsync("IsHighlightMode");
+          sendTabMessage();
+          break;
+        case "NOTE_UPDATE":
+          database = await getChromeDataAsync("Database");
+          trie = await constructTrieByDatabase(database);
+          sendTabMessage();
+          break;
+      }
     });
   }
 });
@@ -29,8 +69,8 @@ async function getChromeDataAsync(dataType) {
   });
 }
 async function init() {
-  database = await getChromeDataAsync("Database");
   isHighlightMode = await getChromeDataAsync("IsHighlightMode");
+  database = await getChromeDataAsync("Database");
   trie = await constructTrieByDatabase(database);
 }
 
@@ -38,7 +78,7 @@ async function constructTrieByDatabase(database) {
   let trie = new Trie();
   for (const element of database) {
     for (const note of element.notes) {
-      trie.insert(note.key, note.infos);
+      trie.insert(note.key, note.infos, element.name);
     }
   }
   return trie;
@@ -61,7 +101,7 @@ class Trie {
     this.root = new TrieNode();
   }
 
-  insert(key, infos) {
+  insert(key, subInfos, source) {
     let node = this.root;
     for (const char of key) {
       if (!node.children[char]) {
@@ -70,17 +110,6 @@ class Trie {
       node = node.children[char];
     }
     node.isEnd = true;
-    node.infos.push(infos);
-  }
-
-  findNode(key) {
-    let node = this.root;
-    for (const char of key) {
-      if (!node.children[char]) {
-        return null;
-      }
-      node = node.children[char];
-    }
-    return node.isEnd ? node : null;
+    node.infos.push({ source: source, subInfos: subInfos });
   }
 }

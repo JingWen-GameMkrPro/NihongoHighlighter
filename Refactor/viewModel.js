@@ -3,6 +3,7 @@ class viewModel {
     this._model = model;
     this._subscribers = {};
     this.noteMakerInstance = new NoteMaker();
+    this.port = chrome.runtime.connect({ name: "popup-background" });
 
     //我想關注...資料，資料一變化就執行...
     this._init();
@@ -99,6 +100,7 @@ class viewModel {
   }
 
   exchangeMode() {
+    console.log("awfe");
     this._model.getData(model.DataType.IS_HIGHLIGHT_MODE, (value) => {
       if (value !== undefined) {
         if (value === true) {
@@ -106,6 +108,8 @@ class viewModel {
         } else {
           this._model.setData(model.DataType.IS_HIGHLIGHT_MODE, true);
         }
+        //通知BACKGROUND
+        this.port.postMessage({ cmd: "MODE_UPDATE" });
       }
     });
   }

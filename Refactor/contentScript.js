@@ -31,11 +31,11 @@ function constructTipByInfos(key, infos, trie) {
   let tip = `<div style="padding:4px 0; margin-bottom:4px; font-weight: bold;">${key}</div>`;
   tip += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
 
-  infos.forEach((subInfos, i) => {
+  infos.forEach((infosObject, i) => {
     if (i > 0) {
       tip += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
     }
-    subInfos.forEach((info) => {
+    infosObject.subInfos.forEach((info) => {
       switch (info.type) {
         case "Text":
           tip += `<div style="padding:2px 0;">${info.content}</div>`;
@@ -48,8 +48,8 @@ function constructTipByInfos(key, infos, trie) {
           let refInfos = trie.findNode(info.content).infos;
           if (refInfos !== null) {
             tip += `<div style="background-color: ${tipColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">`;
-            refInfos.forEach((subInfos) => {
-              subInfos.forEach((info) => {
+            refInfos.forEach((refInfosObject) => {
+              refInfosObject.subInfos.forEach((info) => {
                 switch (info.type) {
                   case "Reference":
                   case "Notice":
@@ -75,8 +75,8 @@ function constructTipByInfos(key, infos, trie) {
           let noticeInfos = findTrieNode(trie, info.content).infos;
           if (noticeInfos !== null) {
             tip += `<div style="background-color: ${tipColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">`;
-            noticeInfos.forEach((subInfos) => {
-              subInfos.forEach((info) => {
+            noticeInfos.forEach((noticeInfosObject) => {
+              noticeInfosObject.subInfos.forEach((info) => {
                 switch (info.type) {
                   case "Reference":
                   case "Notice":
@@ -102,6 +102,7 @@ function constructTipByInfos(key, infos, trie) {
       }
     });
   });
+
   return tip;
 }
 
@@ -241,6 +242,16 @@ function findTrieNode(trie, key) {
   return node.isEnd ? node : null;
 }
 
+function clearHighlight() {
+  const highlighted = document.querySelectorAll("span.highlight");
+  highlighted.forEach((span) => {
+    const parent = span.parentNode;
+    if (!parent) return;
+    const textNode = document.createTextNode(span.textContent);
+    parent.replaceChild(textNode, span);
+    parent.normalize();
+  });
+}
 // 收到 background 的 HIGHLIGHT 訊息後，立即對整頁做高亮
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "HIGHLIGHT" && msg.trie) {
@@ -250,6 +261,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } catch (e) {
       console.error("高亮時發生錯誤：", e);
     }
+  }
+
+  if (msg.action === "UNHIGHLIGHT") {
+    clearHighlight();
   }
   // 表示我們會異步呼叫 sendResponse（如果需要）
   return true;
