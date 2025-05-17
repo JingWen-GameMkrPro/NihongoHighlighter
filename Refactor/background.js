@@ -10,7 +10,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     // 發一個自訂訊息，把 raw database 推給 content
     await init();
     chrome.tabs.sendMessage(tabId, {
-      action: "INIT_TRIE",
+      action: "HIGHLIGHT",
       trie,
     });
   }

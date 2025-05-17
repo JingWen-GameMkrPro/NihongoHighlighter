@@ -1,45 +1,129 @@
-function collectAllMatches(text, trie) {
+const tipColorMap = {
+  GREEN: "rgb(0, 69, 0)",
+  RED: "rgb(92, 0, 0)",
+  BLUE: "rgb(0, 32, 65)",
+};
+
+function collectMatchesInNode(text, trieRoot) {
   const matches = [];
-  const lower = text.toLowerCase();
-  for (let i = 0; i < lower.length; i++) {
-    let node = trie;
-    for (let j = i; j < lower.length; j++) {
-      const ch = lower[j];
-      if (!node.children?.[ch]) break;
-      node = node.children[ch];
+  const lowerText = text.toLowerCase();
+  for (let i = 0; i < lowerText.length; i++) {
+    let node = trieRoot;
+    for (let j = i; j < lowerText.length; j++) {
+      const currentChar = lowerText[j];
+      if (!node.children?.[currentChar]) break;
+      node = node.children[currentChar];
       if (node.isEnd) {
-        matches.push({ start: i, end: j + 1, infos: node.infos });
+        //HACK: WHY IS J + 1? 因為會使用slice
+        matches.push({
+          start: i,
+          end: j + 1,
+          key: lowerText.slice(i, j + 1),
+          infos: node.infos,
+        });
       }
     }
   }
   return matches;
 }
 
-function highlightTextNode(node, matches) {
-  matches.sort((a, b) => a.start - b.start || b.end - a.end);
-  const frag = document.createDocumentFragment();
-  const txt = node.nodeValue;
-  let cursor = 0;
-  for (const { start, end, infos } of matches) {
-    if (start > cursor) {
-      frag.appendChild(document.createTextNode(txt.slice(cursor, start)));
+function constructTipByInfos(key, infos, trie) {
+  let tip = `<div style="padding:4px 0; margin-bottom:4px; font-weight: bold;">${key}</div>`;
+  tip += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
+
+  infos.forEach((subInfos, i) => {
+    if (i > 0) {
+      tip += `<div style="border-top:1px solid rgba(255,255,255,0.2); margin:4px 0;"></div>`;
     }
-    const span = document.createElement("span");
-    span.className = "highlight";
-    //span.dataset.tooltip = tip; // <- 放到 data-tooltip
-    span.textContent = txt.slice(start, end);
-    let tip = "";
-    for (const i of infos) {
-      for (const j of i) {
-        tip += j.content + "\n";
+    subInfos.forEach((info) => {
+      switch (info.type) {
+        case "Text":
+          tip += `<div style="padding:2px 0;">${info.content}</div>`;
+          break;
+        case "Reference":
+          //不能參考自己
+          if (key === info.content) {
+            break;
+          }
+          let refInfos = trie.findNode(info.content).infos;
+          if (refInfos !== null) {
+            tip += `<div style="background-color: ${tipColorMap.GREEN}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">`;
+            refInfos.forEach((subInfos) => {
+              subInfos.forEach((info) => {
+                switch (info.type) {
+                  case "Reference":
+                  case "Notice":
+                    break;
+                  case "Text":
+                    tip += `<div style="padding:2px 0;">${info.content}</div>`;
+                    break;
+                  case "Example":
+                    tip += `<div style="background-color: ${tipColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">${info.content}</div>`;
+                    break;
+                }
+              });
+            });
+            tip += `</div>`;
+          }
+
+          break;
+        case "Notice":
+          //不能參考自己
+          if (key === info.content) {
+            break;
+          }
+          let noticeInfos = findTrieNode(trie, info.content).infos;
+          if (noticeInfos !== null) {
+            tip += `<div style="background-color: ${tipColorMap.RED}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">`;
+            noticeInfos.forEach((subInfos) => {
+              subInfos.forEach((info) => {
+                switch (info.type) {
+                  case "Reference":
+                  case "Notice":
+                    break;
+                  case "Text":
+                    tip += `<div style="padding:2px 0;">${info.content}</div>`;
+                    break;
+                  case "Example":
+                    tip += `<div style="background-color: ${tipColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">${info.content}</div>`;
+                    break;
+                }
+              });
+            });
+            tip += `</div>`;
+          }
+          break;
+        case "Example":
+          tip += `<div style="background-color: ${tipColorMap.BLUE}; padding:2px 4px; margin-bottom:2px; border-radius:4px;">${info.content}</div>`;
+          break;
+        default:
+          console.error("This info doesn't have type: " + info);
+          break;
       }
-      tip += "----------------\n";
+    });
+  });
+  return tip;
+}
+
+function highlightMatches(node, matches, trie) {
+  //排序匹配，可讓短的在最上層，避免被覆蓋
+  matches.sort((a, b) => a.start - b.start || b.end - a.end);
+  const domCopy = document.createDocumentFragment();
+  const text = node.nodeValue;
+  let cursor = 0;
+  for (const { start, end, key, infos } of matches) {
+    //填充未被高亮的原始文字
+    if (start > cursor) {
+      domCopy.appendChild(document.createTextNode(text.slice(cursor, start)));
     }
+    //開始處理高亮的部分
+    const span = document.createElement("span");
+    span.textContent = text.slice(start, end);
+    span.className = "highlight";
 
     span.addEventListener("mouseover", (e) => {
       const toolTip = getSharedTooltip();
-      console.log(infos[0].content);
-      toolTip.innerhtml = infos[0].content;
+      toolTip.innerHTML = constructTipByInfos(key, infos, trie);
       let posX = e.pageX;
       let posY = e.pageY + 10;
       toolTip.style.left = posX + "px";
@@ -53,13 +137,13 @@ function highlightTextNode(node, matches) {
       tooltip.style.opacity = "0";
     });
 
-    frag.appendChild(span);
+    domCopy.appendChild(span);
     cursor = end;
   }
-  if (cursor < txt.length) {
-    frag.appendChild(document.createTextNode(txt.slice(cursor)));
+  if (cursor < text.length) {
+    domCopy.appendChild(document.createTextNode(text.slice(cursor)));
   }
-  node.parentNode.replaceChild(frag, node);
+  node.parentNode.replaceChild(domCopy, node);
 }
 
 function adjustTooltipPosition() {
@@ -106,27 +190,63 @@ function getSharedTooltip() {
   }
   return window.sharedTooltip;
 }
-function highlightAll(root, trie) {
+function processHighlight(root, trie) {
+  // 分析document，
+  // 找出想要的指定內容 e.g. 文字節點
+  // 過濾掉空白、換行...字元
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode: (n) =>
-      /\S/.test(n.nodeValue)
-        ? NodeFilter.FILTER_ACCEPT
-        : NodeFilter.FILTER_REJECT,
+    acceptNode: (node) => {
+      // 1. 空白文字直接踢掉
+      if (!/\S/.test(node.nodeValue)) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      // 2. 如果這個文字節點在 <input>、<textarea> 或任何 contentEditable 裡，就跳過它整個子樹
+      let el = node.parentElement;
+      while (el) {
+        if (
+          el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable
+        ) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        el = el.parentElement;
+      }
+      // 3. 其他都接受
+      return NodeFilter.FILTER_ACCEPT;
+    },
   });
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-  for (const txtNode of nodes) {
-    const matches = collectAllMatches(txtNode.nodeValue, trie);
-    if (matches.length) highlightTextNode(txtNode, matches);
+
+  // 收集文字節點
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+  // 將每個文字節點進行分析
+  for (const textNode of textNodes) {
+    const matches = collectMatchesInNode(textNode.nodeValue, trie.root);
+    if (matches.length) {
+      highlightMatches(textNode, matches, trie);
+    }
   }
 }
 
-// 收到 background 的 INIT_TRIE 訊息後，立即對整頁做高亮
+function findTrieNode(trie, key) {
+  let node = trie.root;
+  for (const char of key) {
+    if (!node.children[char]) {
+      return null;
+    }
+    node = node.children[char];
+  }
+  return node.isEnd ? node : null;
+}
+
+// 收到 background 的 HIGHLIGHT 訊息後，立即對整頁做高亮
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.action === "INIT_TRIE" && msg.trie) {
+  if (msg.action === "HIGHLIGHT" && msg.trie) {
     try {
-      console.log(msg.trie);
-      highlightAll(document.body, msg.trie.root);
+      console.log("Process Highlight Task");
+      processHighlight(document.body, msg.trie);
     } catch (e) {
       console.error("高亮時發生錯誤：", e);
     }

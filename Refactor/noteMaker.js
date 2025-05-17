@@ -14,8 +14,6 @@ class NoteMaker {
           currentIndexItem.item,
           notionJson
         );
-        console.log(transformResult.Notes);
-        console.log(transformResult.WrongBlocks);
         return {
           notes: transformResult.Notes,
           wrongBlocks: transformResult.WrongBlocks,
