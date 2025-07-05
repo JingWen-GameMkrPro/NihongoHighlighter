@@ -302,7 +302,7 @@
         box-shadow: 0 0 0 3px var(--highlight-color),
           0 8px 25px var(--shadow-light), 0 6px 20px var(--shadow-dark);
       }
-      #card-note-controller.loading {
+      #single-data-controller.loading {
         /* Subtle pulsing background animation */
         animation: pulse-bg 1.5s infinite alternate ease-in-out;
         border-color: var(
@@ -314,12 +314,16 @@
       }
 
       /* Optional: Slightly reduce opacity or blur content within the card */
-      #card-note-controller.loading * {
+      #single-data-controller.loading * {
         /* Target children elements within the specific loading card */
         opacity: 0.8; /* Dim content slightly */
         pointer-events: none; /* Disable clicks on content during loading */
       }
-
+      #normal-data-controller.loading {
+        pointer-events: none; /* 禁用所有子元素的點擊事件 */
+        opacity: 0.7; /* 輕微變暗，表示不可用 */
+        cursor: not-allowed; /* 鼠標顯示禁止符號 */
+      }
       /* Define the keyframe animation (this remains the same as it's a global animation) */
       @keyframes pulse-bg {
         0% {
@@ -406,7 +410,7 @@
         <ul id="list-notes"></ul>
       </div>
 
-      <div class="card" id="card-note-controller">
+      <div class="card" id="single-data-controller">
         <h2 id="text-dbTitle" style="font-size: 16px">Title</h2>
 
         <div class="form-group">
@@ -426,7 +430,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="normal-data-controller">
         <h2>Data Management</h2>
         <div class="form-group">
           <button id="button-addDb">＋ Add New Database</button>

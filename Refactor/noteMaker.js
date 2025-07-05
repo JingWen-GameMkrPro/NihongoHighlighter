@@ -1,40 +1,56 @@
 //該class負責筆記建置相關功能
 class NoteMaker {
-  async fetchNote(apiToken) {
-    //取得
-    const currentIndexItem = await viewModelInstance.asyncGetCurrentIndexItem();
-
-    switch (currentIndexItem.item.sourceType) {
+  async fetchNote(apiToken, database, index) {
+    switch (database[index].sourceType) {
       case model.SourceType.NOTION_PAGE_ID:
         const notionPageInfoJson = await this.fetchNotionPageInfoJson(
           apiToken,
-          currentIndexItem.item.sourceItem.id
-        );
-        const notionPageBlockJson = await this.fetchNotionPageBlockJson(
+          database[index].sourceItem.id
+        ); //檢查是否有重複Database
+
+        let isDuplicateFound = false;
+
+        database.forEach((item, mIndex) => {
+          if (
+            String(mIndex) !== index &&
+            notionPageInfoJson.id.replace(/-/g, "") === item.sourceItem.id
+          ) {
+            //跳出switch
+
+            isDuplicateFound = true;
+
+            return;
+          }
+        });
+
+        if (isDuplicateFound === true) {
+          return null;
+        }
+
+        const notionPageBlocks = await this.fetchNotionPageBlockJson(
           apiToken,
-          currentIndexItem.item.sourceItem.id
+          database[index].sourceItem.id
         );
         const transformResult = await this.transformNotionPageJsonToNote(
-          currentIndexItem.item,
-          notionPageBlockJson
+          database[index],
+          notionPageBlocks
         );
         return {
           title: notionPageInfoJson.properties.Name.title[0].plain_text,
           notes: transformResult.Notes,
           wrongBlocks: transformResult.WrongBlocks,
         };
-        break;
       default:
-        break;
+        return null;
     }
   }
 
   //NOTE: 此函式高度依賴於NOTION本身的JSON結構
-  async transformNotionPageJsonToNote(item, notionPageBlockJson) {
+  async transformNotionPageJsonToNote(item, notionPageBlocks) {
     const Notes = [];
     const WrongBlocks = [];
 
-    notionPageBlockJson.results.forEach((block) => {
+    notionPageBlocks.results.forEach((block) => {
       //先篩選type = paragraph
       if (block.type !== "paragraph") return;
 
@@ -120,26 +136,37 @@ class NoteMaker {
     return new Info(Info.InfoType.TEXT, str);
   }
 
-  //return notionPageJson
   async fetchNotionPageBlockJson(token, pageId) {
-    const apiUrl = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
+    let allBlocks = [];
+    let nextCursor = undefined; // Initialize nextCursor to undefined for the first request
 
     try {
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Notion-Version": "2022-06-28",
-        },
-      });
+      do {
+        let apiUrl = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
+        if (nextCursor) {
+          apiUrl += `&start_cursor=${nextCursor}`; // Add start_cursor for subsequent requests
+        }
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("Failed to fetch Notion page blocks:", error);
-        return null;
-      }
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Notion-Version": "2022-06-28",
+          },
+        });
 
-      return await response.json();
+        if (!response.ok) {
+          const error = await response.json();
+          console.error("Failed to fetch Notion page blocks:", error);
+          return null;
+        }
+
+        const data = await response.json();
+        allBlocks = allBlocks.concat(data.results); // Add fetched blocks to the array
+        nextCursor = data.next_cursor; // Get the cursor for the next page
+      } while (nextCursor); // Continue as long as there's a next_cursor
+
+      return { results: allBlocks }; // Return the merged blocks in the same structure as Notion's API
     } catch (error) {
       console.error("Error fetching Notion page blocks:", error);
       return null;

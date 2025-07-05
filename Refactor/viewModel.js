@@ -226,14 +226,21 @@ class viewModel {
   }
 
   async updateNote() {
-    const token = await this._model.getDataAsync(model.DataType.TOKEN);
-    const result = await this.noteMakerInstance.fetchNote(token);
-    const index = await this._model.getDataAsync(model.DataType.DATABASE_INDEX);
     const database = await this._model.getDataAsync(model.DataType.DATABASE);
-    database[index].name = result.title;
-    database[index].notes = result.notes;
-    database[index].wrongs = result.wrongBlocks;
-    await this._model.setDataAsync(model.DataType.DATABASE, database);
+    const index = await this._model.getDataAsync(model.DataType.DATABASE_INDEX);
+    const token = await this._model.getDataAsync(model.DataType.TOKEN);
+    const result = await this.noteMakerInstance.fetchNote(
+      token,
+      database,
+      index
+    );
+    if (result !== null) {
+      database[index].name = result.title;
+      database[index].notes = result.notes;
+      database[index].wrongs = result.wrongBlocks;
+      this.setSourceItemData();
+      await this._model.setDataAsync(model.DataType.DATABASE, database);
+    }
   }
 
   //初始化所有VIEW資料

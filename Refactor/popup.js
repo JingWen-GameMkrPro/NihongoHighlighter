@@ -213,8 +213,16 @@ document.addEventListener("DOMContentLoaded", () => {
   async function clickedButtonUpdateNote(button) {
     button.disabled = true;
 
-    const cardElement = document.getElementById("card-note-controller");
-    cardElement.classList.add("loading");
+    const singleDataController = document.getElementById(
+      "single-data-controller"
+    );
+    singleDataController.classList.add("loading");
+
+    const normalDataController = document.getElementById(
+      "normal-data-controller"
+    );
+    normalDataController.classList.add("loading");
+
     listNotes.classList.add("loading");
     try {
       await viewModelInstance.updateNote();
@@ -222,7 +230,8 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error(e);
     } finally {
       button.disabled = false;
-      cardElement.classList.remove("loading"); // **停止載入動畫：移除 loading 類別**
+      singleDataController.classList.remove("loading");
+      normalDataController.classList.remove("loading");
       listNotes.classList.remove("loading");
     }
   }
