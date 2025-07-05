@@ -4,245 +4,309 @@
     <meta name="viewport" content="width=400, initial-scale=1" />
     <title>Knowtion</title>
     <style>
+      :root {
+        --primary-bg: linear-gradient(120deg, #4a251b 0%, #7f4339 100%);
+        --container-bg: rgba(255, 255, 255, 0.25);
+        --container-border: rgba(255, 255, 255, 0.3);
+        --text-color: #f2e6df;
+        --text-color-dark: #3c2a27;
+        --highlight-color: #c4816c;
+        --shadow-light: rgba(0, 0, 0, 0.3);
+        --shadow-dark: rgba(0, 0, 0, 0.5);
+      }
+
       html,
       body {
         margin: 0;
         padding: 0;
         width: 400px;
-        height: 600px;
-        background: linear-gradient(120deg, #4a251b 0%, #7f4339 100%);
+        background: var(--primary-bg);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           Helvetica, Arial, sans-serif;
-        font-weight: bold;
-        color: #f2e6df;
+        color: var(--text-color);
         overflow-y: auto;
       }
-      .container {
-        width: 90%;
-        max-width: 320px;
-        margin: 20px auto;
+
+      .main-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px;
+      }
+
+      .card {
         padding: 16px;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.25);
+        border-radius: 16px;
+        background: var(--container-bg);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.3),
-          0 6px 20px rgba(46, 46, 46, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 15px var(--shadow-light),
+          0 2px 10px var(--shadow-dark);
+        border: 1px solid var(--container-border);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
       }
-      .container:hover {
+
+      .card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 0 40px rgba(4, 4, 4, 0.5), 0 10px 30px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 8px 25px var(--shadow-light),
+          0 6px 20px var(--shadow-dark);
       }
-      h1 {
+
+      h1,
+      h2 {
         text-align: center;
-        font-size: 20px;
+        margin: 0;
+        padding: 0;
         font-weight: bold;
-        margin-bottom: 16px;
         color: #fdf6f1;
       }
-      #text-currentMode {
-        font-size: 16px;
-        text-align: center;
-        color: #fdf6f1;
-        margin: 5px 0;
+
+      h1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 24px;
       }
-      #title img {
+
+      h1 img {
         width: 28px;
         height: 28px;
       }
+
+      h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+
+      p {
+        margin: 0;
+        text-align: center;
+      }
+
+      /* --- Form & Input Styles --- */
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .form-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .input-wrapper {
+        position: relative;
+        flex-grow: 1;
+      }
+
+      .styled-input {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        color: var(--text-color-dark);
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 1px solid var(--container-border);
+        border-radius: 8px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box; /* Important for padding and width */
+      }
+
+      .toggle-visibility {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #151718;
+        font-size: 16px;
+      }
+
+      label {
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      /* --- Button Styles --- */
       button {
         width: 100%;
         padding: 12px;
         border: none;
         border-radius: 12px;
-        background: linear-gradient(135deg, #7f4339, #c4816c);
+        background: linear-gradient(135deg, #7f4339, var(--highlight-color));
         color: #fff;
         font-size: 15px;
         font-weight: bold;
         cursor: pointer;
-        transition: background 0.3s ease, box-shadow 0.3s ease,
-          transform 0.1s ease;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px var(--shadow-light);
       }
+
       button:hover {
-        background: linear-gradient(135deg, #c4816c, #7f4339);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        background: linear-gradient(135deg, var(--highlight-color), #7f4339);
+        box-shadow: 0 4px 12px var(--shadow-dark);
       }
+
       button:active {
         transform: scale(0.98);
+        box-shadow: 0 2px 5px var(--shadow-dark);
       }
-      .block-area {
-        margin-top: 20px;
-        padding: 15px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        background-color: rgba(255, 255, 255, 0.1);
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      }
-      .small-block-area {
-        margin-top: 1px;
-        padding: 1px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        background-color: rgba(255, 255, 255, 0.1);
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      }
-      #tutorial {
+
+      .button-group {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        color: #fdf6f1;
+        gap: 10px;
       }
-      /* 單一資料庫顯示區 */
-      #dbDisplay {
-        margin-top: 20px;
-        padding: 15px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        background-color: rgba(255, 255, 255, 0.1);
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      }
-      .nav-buttons {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-      }
-      .nav-buttons button {
-        width: 48%;
-        text-align: center;
-      }
-      #button-addDb,
-      #button-deleteDb {
-        margin-top: 10px;
-      }
-      .input-container {
-        position: relative;
-        display: inline-block;
-        width: 90%;
-        margin-top: 5px;
-      }
-      .styled-input {
-        width: 100%;
-        padding: 8px 30px 8px 8px;
-        font-size: 14px;
-        color: #3c2a27;
-        background-color: rgba(255, 255, 255, 0.7);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-      }
-      .toggle-visibility {
-        position: absolute;
-        right: 10px;
-        top: 45%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        color: #151718;
-        font-size: 15px;
-      }
-      #tokenHeader {
+
+      /* --- Specific Section Styles --- */
+      .info-link {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        background-color: rgba(0, 0, 0, 0.1);
       }
-      .info-line {
-        font-size: 14px;
-        color: #f2e6df;
-        margin: 4px 0;
-        text-align: center;
-        cursor: default;
-      }
-      .info-line:hover {
+
+      .info-link a {
         text-decoration: none;
-      }
-      /* 資料庫索引指示 */
-      #dbIndexIndicator {
-        text-align: center;
-        margin-top: 10px;
+        color: inherit;
         font-size: 14px;
-        color: #fdf6f1;
+        font-weight: normal;
+      }
+      .info-link a:hover {
+        text-decoration: underline;
+      }
+
+      #token-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      #list-notes {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      /* --- Debugging Section --- */
+      .debug-section {
+        margin-top: 20px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        text-align: center;
       }
     </style>
   </head>
   <body>
-    <div class="container">
+    <div class="main-container">
       <h1 id="title"><img src="icon.svg" alt="Icon" />Knowtion</h1>
-      <div class="small-block-area">
-        <p id="tutorial">
-          <img
-            src="info.svg"
-            style="width: 18px; margin-right: 5px; height: 18px"
-            alt="Info"
-          />
-          <a
-            href="https://rocky-allspice-628.notion.site/Knowtion-1bd26f3d13b88138b109e8e48ea56701?pvs=4"
-            target="_blank"
-            style="text-decoration: underline; color: inherit"
-            >Information</a
-          >
-        </p>
+
+      <div class="info-link">
+        <img src="info.svg" style="width: 18px; height: 18px" alt="Info" />
+        <a
+          href="https://rocky-allspice-628.notion.site/Knowtion-1bd26f3d13b88138b109e8e48ea56701?pvs=4"
+          target="_blank"
+          >Information & Usage Guide</a
+        >
       </div>
 
-      <!-- Card: Token -->
-      <div class="block-area">
-        <div id="tokenHeader">
-          <label style="margin: 0; font-size: 16px">Notion Token：</label>
-          <p style="color: #fdf6f1">
-            <input type="checkbox" id="checkbox-isSaveToken" /> Save Token
-          </p>
-        </div>
-        <div class="input-container">
-          <input
-            type="password"
-            id="input-notionToken"
-            placeholder="Enter Notion Token"
-            class="styled-input"
-          />
-          <span id="toggle-tokenVisibility" class="toggle-visibility">👁</span>
-        </div>
-      </div>
-
-      <!-- Card: Control Panel -->
-      <div class="block-area">
-        <h1 id="text-currentMode">Current Mode：Stop</h1>
-        <label class="info-line" for="input-splitChar">Split Character：</label>
-        <input
-          type="text"
-          id="input-splitChar"
-          value="/"
-          maxlength="1"
-          style="width: 30px; text-align: center; margin-top: 10px"
-        />
-        <br /><br />
-        <label class="info-line" for="input-highlightColor">Color：</label>
-        <input type="color" id="input-highlightColor" />
-        <br /><br />
-        <button id="button-exchangeMode">Highlight！</button>
-      </div>
-
-      <!-- HACK: TMP -->
-      <button id="button-debug">Debug</button>
-      <div id="index">Index</div>
-      <div id="indexx">Indexx</div>
-      <div id="dbDisplay" class="block-area" style="margin-top: 20px"></div>
-
-      <div class="block-area">
-        <label style="margin: 0; font-size: 16px">Your Notion Notes</label>
-
-        <div>
-          <ul id="list-notes"></ul>
+      <div class="card">
+        <div class="form-group">
+          <div id="token-header">
+            <h2 style="margin: 0">Notion Token</h2>
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-weight: normal;
+              "
+            >
+              <input type="checkbox" id="checkbox-isSaveToken" /> Save
+            </label>
+          </div>
+          <div class="input-wrapper">
+            <input
+              type="password"
+              id="input-notionToken"
+              placeholder="Enter Notion Token"
+              class="styled-input"
+            />
+            <span id="toggle-tokenVisibility" class="toggle-visibility">👁</span>
+          </div>
         </div>
       </div>
 
-      <!-- Card: Database Panel -->
-      <!-- NOTE: 必須要跟model.SourceType enum 一樣 -->
+      <div class="card">
+        <h2 id="text-currentMode">Current Mode: Stop</h2>
+        <div class="form-group">
+          <div class="form-row">
+            <label for="input-splitChar">Split Character:</label>
+            <input
+              type="text"
+              id="input-splitChar"
+              value="/"
+              maxlength="1"
+              class="styled-input"
+              style="width: 50px; text-align: center"
+            />
+            <label for="input-highlightColor">Highlight Color:</label>
+            <input
+              type="color"
+              id="input-highlightColor"
+              style="
+                height: 38px;
+                padding: 2px;
+                border-radius: 8px;
+                border: none;
+              "
+            />
+          </div>
+          <button id="button-exchangeMode">Highlight！</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Your Notion Notes</h2>
+        <ul id="list-notes"></ul>
+      </div>
+
+      <div class="card">
+        <h2 id="text-dbTitle" style="font-size: 16px">Title</h2>
+
+        <div class="form-group">
+          <div class="form-row" style="margin-bottom: 12px">
+            <label>Page ID:</label>
+            <div id="container-sourceItem" class="input-wrapper"></div>
+          </div>
+
+          <button id="button-updateNote">Refresh</button>
+          <button class="deleteDbBtn" data-id="${dbItem.id}">Delete</button>
+          <div class="button-group" style="margin-top: 5px">
+            <button id="button-preDb">Previous</button>
+            <button id="button-nextDb">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Data Management</h2>
+        <div class="form-group">
+          <button id="button-addDb">＋ Add New Database</button>
+          <button id="button-initDb">Initialize Default Data</button>
+          <button id="button-deleteDb" style="background: #a04f4f">
+            Delete All Data
+          </button>
+        </div>
+      </div>
+
       <template id="sourceItem-NotionPageId">
         <input
           type="text"
@@ -258,50 +322,22 @@
           id="input-dbId"
           placeholder="Enter Database ID"
           class="styled-input"
-      /></template>
+        />
+      </template>
 
-      <template id="sourceItem-txt"><div>Text</div> </template>
+      <template id="sourceItem-txt"><div>Text</div></template>
 
-      <h1 id="text-dbTitle" style="font-size: 15px">Title</h1>
-      <label class="info-line">Page ID：</label><br />
-      <div id="container-sourceItem"></div>
-
-      <br />
-      <br />
-      <button
-        class="refreshDbBtn"
-        id="button-updateNote"
-        style="margin-top: 10px"
-      >
-        Refresh
-      </button>
-      <button
-        class="deleteDbBtn"
-        data-id="${
-            dbItem.id
-          }"
-        style="margin-top: 10px"
-      >
-        Delete
-      </button>
-      <br /><br />
-      <div class="nav-buttons">
-        <button id="button-preDb">上一個</button>
-        <button id="button-nextDb">下一個</button>
+      <div class="debug-section">
+        <button id="button-debug">Debug</button>
+        <div id="index">Index</div>
+        <div id="indexx">Indexx</div>
+        <div id="dbDisplay" style="margin-top: 10px"></div>
+        <p id="dbIndexIndicator"></p>
       </div>
-
-      <!-- 資料庫索引指示 -->
-      <p id="dbIndexIndicator"></p>
-
-      <button id="button-addDb">＋ 新增一組資料庫</button>
-      <button id="button-deleteDb">Delete All Data</button>
-      <button id="button-initDb">Init Data</button>
     </div>
-
     <script src="noteMaker.js"></script>
     <script src="model.js"></script>
     <script src="viewModel.js"></script>
-
     <script src="popup.js"></script>
   </body>
 </html>

@@ -214,7 +214,8 @@ class viewModel {
   }
 
   async updateNote() {
-    const result = await this.noteMakerInstance.fetchNote();
+    const token = await this._model.getDataAsync(model.DataType.TOKEN);
+    const result = await this.noteMakerInstance.fetchNote(token);
     const index = await this._model.getDataAsync(model.DataType.DATABASE_INDEX);
     const database = await this._model.getDataAsync(model.DataType.DATABASE);
     database[index].name = result.title;
@@ -230,6 +231,7 @@ class viewModel {
     splitChar,
     highlightColor,
     mode,
+    list,
     debug1,
     debug2,
   }) {
@@ -288,6 +290,8 @@ class viewModel {
     this.getData(model.DataType.DATABASE, (database) => {
       if (database !== undefined) {
         debug2.textContent = database.length;
+
+        this._notify(model.DataType.DATABASE, database);
       }
     });
   }

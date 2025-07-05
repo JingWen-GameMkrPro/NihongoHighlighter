@@ -1,17 +1,17 @@
 //該class負責筆記建置相關功能
 class NoteMaker {
-  async fetchNote() {
+  async fetchNote(apiToken) {
     //取得
     const currentIndexItem = await viewModelInstance.asyncGetCurrentIndexItem();
 
     switch (currentIndexItem.item.sourceType) {
       case model.SourceType.NOTION_PAGE_ID:
         const notionPageInfoJson = await this.fetchNotionPageInfoJson(
-          currentIndexItem.item.sourceItem.apiToken,
+          apiToken,
           currentIndexItem.item.sourceItem.id
         );
         const notionPageBlockJson = await this.fetchNotionPageBlockJson(
-          currentIndexItem.item.sourceItem.apiToken,
+          apiToken,
           currentIndexItem.item.sourceItem.id
         );
         const transformResult = await this.transformNotionPageJsonToNote(
