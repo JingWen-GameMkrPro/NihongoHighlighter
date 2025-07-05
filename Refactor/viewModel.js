@@ -153,6 +153,10 @@ class viewModel {
     this._model.setData(model.DataType.DATABASE_INDEX, 0);
   }
 
+  gotoIndex(index) {
+    this._model.setData(model.DataType.DATABASE_INDEX, index);
+  }
+
   moveForwardIndex() {
     this._model.getData(model.DataType.DATABASE_INDEX, (index) => {
       if (index !== undefined) {
@@ -178,6 +182,14 @@ class viewModel {
           }
         });
       }
+    });
+  }
+
+  async asyncGetCurrentIndex() {
+    return await new Promise((resolve) => {
+      this._model.getData(model.DataType.DATABASE_INDEX, (index) =>
+        resolve(index)
+      );
     });
   }
 

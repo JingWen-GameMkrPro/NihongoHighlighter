@@ -213,6 +213,12 @@
         gap: 12px; /* 列表項之間的間距 */
       }
 
+      #list-notes.loading {
+        pointer-events: none; /* 禁用所有子元素的點擊事件 */
+        opacity: 0.7; /* 輕微變暗，表示不可用 */
+        cursor: not-allowed; /* 鼠標顯示禁止符號 */
+      }
+
       /* Styles for each list item (the "block" itself) */
       .list-item {
         background: var(--container-bg); /* 使用容器背景色 */
@@ -262,6 +268,67 @@
         min-width: 25px; /* 最小寬度，防止數字太少時太窄 */
         text-align: center; /* 文字居中 */
         flex-shrink: 0; /* 防止計數器縮小 */
+      }
+
+      /* Style for the selected list item */
+      .list-item.selected {
+        background: var(
+          --highlight-color
+        ); /* Use your highlight color for the background */
+        box-shadow: 0 0 0 3px var(--highlight-color),
+          /* Stronger outline effect */ 0 4px 15px var(--shadow-light),
+          0 2px 10px var(--shadow-dark);
+        transform: scale(1.01); /* Slightly enlarge when selected */
+        border-color: var(--highlight-color); /* Change border color to match */
+      }
+
+      .list-item.selected .item-title {
+        color: var(
+          --text-color-dark
+        ); /* Adjust text color for better contrast on highlight background */
+      }
+
+      .list-item.selected .item-count {
+        background-color: var(
+          --text-color-dark
+        ); /* Invert or change count badge color */
+        color: var(--highlight-color); /* Make text color the highlight color */
+      }
+
+      /* You might want to remove or adjust the hover effect for selected items
+   to avoid conflicting visuals, or make it subtle. */
+      .list-item.selected:hover {
+        transform: scale(1.01); /* Keep the selected scale */
+        box-shadow: 0 0 0 3px var(--highlight-color),
+          0 8px 25px var(--shadow-light), 0 6px 20px var(--shadow-dark);
+      }
+      #card-note-controller.loading {
+        /* Subtle pulsing background animation */
+        animation: pulse-bg 1.5s infinite alternate ease-in-out;
+        border-color: var(
+          --highlight-color
+        ); /* Highlight border during loading */
+        box-shadow: 0 0 0 2px var(--highlight-color),
+          /* Add a slight glow */ 0 4px 15px var(--shadow-light),
+          0 2px 10px var(--shadow-dark);
+      }
+
+      /* Optional: Slightly reduce opacity or blur content within the card */
+      #card-note-controller.loading * {
+        /* Target children elements within the specific loading card */
+        opacity: 0.8; /* Dim content slightly */
+        pointer-events: none; /* Disable clicks on content during loading */
+      }
+
+      /* Define the keyframe animation (this remains the same as it's a global animation) */
+      @keyframes pulse-bg {
+        0% {
+          background: var(--container-bg);
+        }
+        100% {
+          /* Slightly darker or lighter variant of container-bg, or a subtle color */
+          background: rgba(255, 255, 255, 0.35); /* A bit more opaque white */
+        }
       }
     </style>
   </head>
@@ -339,7 +406,7 @@
         <ul id="list-notes"></ul>
       </div>
 
-      <div class="card">
+      <div class="card" id="card-note-controller">
         <h2 id="text-dbTitle" style="font-size: 16px">Title</h2>
 
         <div class="form-group">

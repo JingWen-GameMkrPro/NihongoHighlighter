@@ -42,11 +42,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   viewModelInstance.subscribe(model.DataType.DATABASE, updateListNotes);
 
-  function updateListNotes(newValue) {
+  viewModelInstance.subscribe(
+    model.DataType.DATABASE_INDEX,
+    updateSelectListItem
+  );
+
+  function updateSelectListItem(index) {
+    highlightListItem(listNotes, index);
+  }
+
+  async function updateListNotes(newDatabase) {
+    //清空List
     emptyList(listNotes);
-    newValue.forEach((dateBaseItem, index) => {
-      pushListItem(listNotes, index + 1, dateBaseItem);
+
+    //根據新資料庫內容，重新顯示List
+    newDatabase.forEach((dateBaseItem, index) => {
+      pushListItem(listNotes, index, dateBaseItem);
     });
+
+    //Highlight目前Select
+    const index = await viewModelInstance.asyncGetCurrentIndex();
+    highlightListItem(listNotes, index);
   }
 
   function emptyList(list) {
@@ -70,7 +86,18 @@ document.addEventListener("DOMContentLoaded", () => {
     listItem.appendChild(itemTitle);
     listItem.appendChild(itemCount);
 
+    listItem.addEventListener("click", function () {
+      viewModelInstance.gotoIndex(listItem.getAttribute("item-index"));
+    });
     list.appendChild(listItem);
+  }
+
+  function highlightListItem(list, index) {
+    const currentSelected = list.querySelector(".list-item.selected");
+    if (currentSelected) {
+      currentSelected.classList.remove("selected");
+    }
+    list.children[index].classList.toggle("selected");
   }
 
   function updateTokenView(newValue) {
@@ -185,12 +212,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function clickedButtonUpdateNote(button) {
     button.disabled = true;
+
+    const cardElement = document.getElementById("card-note-controller");
+    cardElement.classList.add("loading");
+    listNotes.classList.add("loading");
     try {
       await viewModelInstance.updateNote();
     } catch (e) {
       console.error(e);
     } finally {
       button.disabled = false;
+      cardElement.classList.remove("loading"); // **停止載入動畫：移除 loading 類別**
+      listNotes.classList.remove("loading");
     }
   }
 
@@ -234,14 +267,18 @@ document.addEventListener("DOMContentLoaded", () => {
       viewModelInstance.getCurrentIndexItem(({ index, item }) => {
         //根據state而有的元素
         this.textDbTitle.textContent =
-          index + 1 + "：" + (item.name === "" ? "Unknow Name" : item.name);
+          String(parseInt(index, 10) + 1).padStart(3, "0") +
+          "：" +
+          (item.name === "" ? "Unknow Name" : item.name);
       });
     }
 
     updateView(index, item) {
       //根據state而有的元素
       this.textDbTitle.textContent =
-        index + 1 + "：" + (item.name === "" ? "Unknow Name" : item.name);
+        String(parseInt(index, 10) + 1).padStart(3, "0") +
+        "：" +
+        (item.name === "" ? "Unknow Name" : item.name);
     }
 
     updateDomElementFromTemplate(sourceType) {
