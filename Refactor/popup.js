@@ -38,6 +38,35 @@ document.addEventListener("DOMContentLoaded", () => {
   //MakeNote
   const buttonUpdateNote = document.getElementById("button-updateNote");
 
+  const listNotes = document.getElementById("list-notes");
+
+  viewModelInstance.subscribe(model.DataType.DATABASE, updateListNotes);
+
+  function updateListNotes(newValue) {
+    emptyList(listNotes);
+    newValue.forEach((dateBaseItem, index) => {
+      pushListItem(listNotes, index + 1, dateBaseItem.name);
+    });
+  }
+
+  function emptyList(list) {
+    list.innerHTML = ""; // 最直接高效的清空方式
+  }
+
+  function pushListItem(list, index, title) {
+    const listItem = document.createElement("li");
+    listItem.setAttribute("item-index", index);
+    listItem.classList.add("list-item");
+
+    const itemTitle = document.createElement("span");
+    itemTitle.classList.add("item-title");
+    itemTitle.textContent = title;
+
+    listItem.appendChild(itemTitle);
+
+    list.appendChild(listItem);
+  }
+
   function updateTokenView(newValue) {
     inputNotionToken.value = newValue || "";
   }

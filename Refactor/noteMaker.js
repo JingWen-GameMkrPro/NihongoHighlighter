@@ -6,15 +6,20 @@ class NoteMaker {
 
     switch (currentIndexItem.item.sourceType) {
       case model.SourceType.NOTION_PAGE_ID:
-        const notionJson = await this.fetchNotionPageJson(
+        const notionPageInfoJson = await this.fetchNotionPageInfoJson(
+          currentIndexItem.item.sourceItem.apiToken,
+          currentIndexItem.item.sourceItem.id
+        );
+        const notionPageBlockJson = await this.fetchNotionPageBlockJson(
           currentIndexItem.item.sourceItem.apiToken,
           currentIndexItem.item.sourceItem.id
         );
         const transformResult = await this.transformNotionPageJsonToNote(
           currentIndexItem.item,
-          notionJson
+          notionPageBlockJson
         );
         return {
+          title: notionPageInfoJson.properties.Name.title[0].plain_text,
           notes: transformResult.Notes,
           wrongBlocks: transformResult.WrongBlocks,
         };
@@ -25,11 +30,11 @@ class NoteMaker {
   }
 
   //NOTE: 此函式高度依賴於NOTION本身的JSON結構
-  async transformNotionPageJsonToNote(item, notionPageJson) {
+  async transformNotionPageJsonToNote(item, notionPageBlockJson) {
     const Notes = [];
     const WrongBlocks = [];
 
-    notionPageJson.results.forEach((block) => {
+    notionPageBlockJson.results.forEach((block) => {
       //先篩選type = paragraph
       if (block.type !== "paragraph") return;
 
@@ -116,7 +121,7 @@ class NoteMaker {
   }
 
   //return notionPageJson
-  async fetchNotionPageJson(token, pageId) {
+  async fetchNotionPageBlockJson(token, pageId) {
     const apiUrl = `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
 
     try {
@@ -130,13 +135,39 @@ class NoteMaker {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error("Failed to fetch Notion page:", error);
+        console.error("Failed to fetch Notion page blocks:", error);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error("Error fetching Notion page:", error);
+      console.error("Error fetching Notion page blocks:", error);
+      return null;
+    }
+  }
+
+  //return notionPageJson
+  async fetchNotionPageInfoJson(token, pageId) {
+    const apiUrl = `https://api.notion.com/v1/pages/${pageId}`;
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Notion-Version": "2022-06-28",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Failed to fetch Notion page info:", error);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching Notion page info:", error);
       return null;
     }
   }

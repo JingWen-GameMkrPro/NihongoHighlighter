@@ -217,6 +217,7 @@ class viewModel {
     const result = await this.noteMakerInstance.fetchNote();
     const index = await this._model.getDataAsync(model.DataType.DATABASE_INDEX);
     const database = await this._model.getDataAsync(model.DataType.DATABASE);
+    database[index].name = result.title;
     database[index].notes = result.notes;
     database[index].wrongs = result.wrongBlocks;
     await this._model.setDataAsync(model.DataType.DATABASE, database);

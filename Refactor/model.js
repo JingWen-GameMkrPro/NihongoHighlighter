@@ -13,6 +13,7 @@ class model {
     DATABASE: "Database",
   });
 
+  //顯示的文字樣板
   static DisplayText = Object.freeze({
     TITLE_MODE_HIGHLIGHT: "Mode: Highlight Mode",
     TITLE_MODE_UNHIGHLIGHT: "Mode: Unhighlight Mode",
