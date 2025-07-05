@@ -296,38 +296,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     getElement() {
       this.inputPageId = document.getElementById("input-pageId");
-      this.inputApiToken = document.getElementById("input-apiToken");
     }
 
     initValue() {
       viewModelInstance.getCurrentIndexItem(({ index, item }) => {
         this.inputPageId.value = item.sourceItem.id;
-        this.inputApiToken.value = item.sourceItem.apiToken;
       });
     }
 
     updateView(index, item) {
       super.updateView(index, item);
       this.inputPageId.value = item.sourceItem.id;
-      this.inputApiToken.value = item.sourceItem.apiToken;
     }
 
     bindUserInput() {
       this.inputPageId.addEventListener("change", this.userInputPageIdChange);
-      this.inputApiToken.addEventListener(
-        "change",
-        this.userInputApiTokenChange
-      );
     }
 
     unbindUserInput() {
       this.inputPageId.removeEventListener(
         "change",
         this.userInputPageIdChange
-      );
-      this.inputApiToken.removeEventListener(
-        "change",
-        this.userInputApiTokenChange
       );
     }
 
