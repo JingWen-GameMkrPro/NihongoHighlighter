@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateListNotes(newValue) {
     emptyList(listNotes);
     newValue.forEach((dateBaseItem, index) => {
-      pushListItem(listNotes, index + 1, dateBaseItem.name);
+      pushListItem(listNotes, index + 1, dateBaseItem);
     });
   }
 
@@ -53,16 +53,22 @@ document.addEventListener("DOMContentLoaded", () => {
     list.innerHTML = ""; // 最直接高效的清空方式
   }
 
-  function pushListItem(list, index, title) {
+  function pushListItem(list, index, databaseItem) {
     const listItem = document.createElement("li");
     listItem.setAttribute("item-index", index);
     listItem.classList.add("list-item");
 
     const itemTitle = document.createElement("span");
     itemTitle.classList.add("item-title");
-    itemTitle.textContent = title;
+    itemTitle.textContent =
+      databaseItem.name === "" ? "Unknown Name" : databaseItem.name;
+
+    const itemCount = document.createElement("span");
+    itemCount.classList.add("item-count");
+    itemCount.textContent = databaseItem.notes.length;
 
     listItem.appendChild(itemTitle);
+    listItem.appendChild(itemCount);
 
     list.appendChild(listItem);
   }

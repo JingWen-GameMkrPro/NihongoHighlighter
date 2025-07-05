@@ -202,6 +202,67 @@
         border-radius: 8px;
         text-align: center;
       }
+
+      /* Styles for the main list container */
+      #list-notes {
+        list-style-type: none; /* 移除預設列表符號 */
+        padding: 0;
+        margin: 0;
+        display: flex; /* 使用 Flexbox 讓列表項水平排列或換行 */
+        flex-direction: column; /* 預設垂直堆疊 */
+        gap: 12px; /* 列表項之間的間距 */
+      }
+
+      /* Styles for each list item (the "block" itself) */
+      .list-item {
+        background: var(--container-bg); /* 使用容器背景色 */
+        backdrop-filter: blur(8px); /* 輕微模糊效果，與卡片一致 */
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--container-border); /* 邊框 */
+        border-radius: 12px; /* 圓角，稍小於卡片，更精緻 */
+        padding: 12px 16px; /* 內部填充 */
+        box-shadow: 0 2px 8px var(--shadow-light), 0 1px 5px var(--shadow-dark); /* 輕微陰影 */
+        display: flex; /* 內部使用 Flexbox 排列標題和數量 */
+        justify-content: space-between; /* 讓標題和數量分開兩側 */
+        align-items: center; /* 垂直居中對齊 */
+        cursor: pointer; /* 提示可點擊 */
+        transition: transform 0.2s ease, box-shadow 0.2s ease; /* 添加過渡效果 */
+      }
+
+      .list-item:hover {
+        transform: translateY(-2px); /* 懸停時輕微上移 */
+        box-shadow: 0 4px 12px var(--shadow-light), 0 2px 8px var(--shadow-dark); /* 懸停時陰影更明顯 */
+      }
+
+      .list-item:active {
+        transform: translateY(0); /* 點擊時回到原位 */
+        box-shadow: 0 1px 4px var(--shadow-dark); /* 點擊時陰影變淺 */
+      }
+
+      /* Styles for the item title */
+      .item-title {
+        font-weight: bold;
+        color: var(--text-color); /* 使用主要文字顏色 */
+        font-size: 15px;
+        white-space: nowrap; /* 防止標題換行 */
+        overflow: hidden; /* 隱藏超出部分 */
+        text-overflow: ellipsis; /* 超出部分顯示省略號 */
+        flex-grow: 1; /* 允許標題佔用更多空間 */
+        margin-right: 10px; /* 與數量之間留有間距 */
+      }
+
+      /* Styles for the item count (the badge) */
+      .item-count {
+        background-color: var(--highlight-color); /* 使用強調色作為背景 */
+        color: var(--text-color-dark); /* 深色文字，增加對比 */
+        padding: 4px 10px; /* 填充 */
+        border-radius: 15px; /* 橢圓形狀 */
+        font-size: 13px;
+        font-weight: bold;
+        min-width: 25px; /* 最小寬度，防止數字太少時太窄 */
+        text-align: center; /* 文字居中 */
+        flex-shrink: 0; /* 防止計數器縮小 */
+      }
     </style>
   </head>
   <body>
