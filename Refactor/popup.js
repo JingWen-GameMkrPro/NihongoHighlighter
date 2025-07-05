@@ -219,7 +219,6 @@ document.addEventListener("DOMContentLoaded", () => {
     getElement() {
       //每個state都有的元素
       this.textDbTitle = document.getElementById("text-dbTitle");
-      this.selectSourceType = document.getElementById("select-sourceType");
     }
 
     initValue() {
@@ -229,7 +228,6 @@ document.addEventListener("DOMContentLoaded", () => {
         //根據state而有的元素
         this.textDbTitle.textContent =
           model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
-        this.selectSourceType.value = item.sourceType;
       });
     }
 
@@ -237,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
       //根據state而有的元素
       this.textDbTitle.textContent =
         model.DisplayText.TITLE_DATABASE_PREFIX + (index + 1);
-      this.selectSourceType.value = item.sourceType;
     }
 
     updateDomElementFromTemplate(sourceType) {
@@ -252,19 +249,9 @@ document.addEventListener("DOMContentLoaded", () => {
       containerSourceItem.appendChild(clone);
     }
 
-    bindUserInput() {
-      this.selectSourceType.addEventListener(
-        "change",
-        this.userInputSourceTypeChange
-      );
-    }
+    bindUserInput() {}
 
-    unbindUserInput() {
-      this.selectSourceType.removeEventListener(
-        "change",
-        this.userInputSourceTypeChange
-      );
-    }
+    unbindUserInput() {}
 
     userInputSourceTypeChange(event) {
       viewModelInstance.setItemData("sourceType", event.target.value);
