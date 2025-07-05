@@ -32,13 +32,21 @@ class NoteMaker {
     notionPageJson.results.forEach((block) => {
       //先篩選type = paragraph
       if (block.type !== "paragraph") return;
+
       //再來篩選是否有料
       if (block.paragraph.rich_text.length === 0) return;
+
+      //針對文字客製化屬性，e.g. 粗體...，Notion會拆分複數個richText，因此要先組合所有richtext
+      let combinedRichText = block.paragraph.rich_text
+        .map((richText) => richText.plain_text)
+        .join("");
+
       //再來是否可以分割
       const divideResult = this.tryDivideStrBySymbol(
-        block.paragraph.rich_text[0].plain_text,
+        combinedRichText,
         item.sourceItem.splitSymbol
       );
+
       if (divideResult.isSuccess) {
         const infos = this.transformPageBlockValueToInfos(divideResult.part2);
         const note = new Note(divideResult.part1, infos);
@@ -54,6 +62,12 @@ class NoteMaker {
   //將PageBlockValue分解成info
   transformPageBlockValueToInfos(blockValue) {
     const infos = [];
+
+    if (blockValue === "") {
+      infos.push(new Info(Info.InfoType.TEXT, ""));
+      return infos;
+    }
+
     this.divideStrByRegex(blockValue).forEach((subStr) => {
       infos.push(this.makeInfoByRegex(subStr));
     });
